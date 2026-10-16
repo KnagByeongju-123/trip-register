@@ -1,0 +1,17 @@
+# Netlify 응답 헤더
+# - 화면 파일은 항상 최신으로 (오프라인은 sw.js가 담당)
+# - 카메라·위치는 이 사이트에서만 허용
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: same-origin
+  X-Robots-Tag: noindex, nofollow
+  Permissions-Policy: camera=(self), geolocation=(self), microphone=()
+
+/index.html
+  Cache-Control: no-cache
+
+/
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache

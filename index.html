@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>출장등록</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="출장등록">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- supabase-js 2.45.4: 같은 폴더의 로컬 사본을 먼저 쓰고, 없으면 CDN에서 받습니다 -->
+<script src="supabase.min.js"></script>
+<script>window.supabase || document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"><\/script>');</script>
+<style>
+  :root {
+    --bg: #f3f4f6; --panel: #ffffff; --ink: #111827; --muted: #6b7280; --line: #d1d5db;
+    --accent: #1d4ed8; --accent-ink: #ffffff; --warn-bg: #fef3c7; --warn-ink: #92400e;
+    --ok-bg: #dcfce7; --ok-ink: #166534; --err-bg: #fee2e2; --err-ink: #991b1b;
+    --paper: #ffffff; --paper-ink: #000000; --head: #f2f2f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111827; --panel: #1f2937; --ink: #f3f4f6; --muted: #9ca3af; --line: #374151;
+      --accent: #3b82f6; --warn-bg: #451a03; --warn-ink: #fcd34d; --ok-bg: #052e16; --ok-ink: #86efac;
+      --err-bg: #450a0a; --err-ink: #fca5a5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 "Malgun Gothic", "맑은 고딕", system-ui, sans-serif; }
+  header.bar { position: sticky; top: 0; z-index: 10; background: var(--panel); border-bottom: 1px solid var(--line); padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  header.bar h1 { font-size: 16px; margin: 0 12px 0 0; }
+  button, select, input, textarea { font: inherit; color: var(--ink); }
+  button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  select { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 8px; max-width: 260px; }
+  .status { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); }
+  .status.ok { background: var(--ok-bg); color: var(--ok-ink); }
+  .status.err { background: var(--err-bg); color: var(--err-ink); }
+  nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 16px 0; }
+  nav.tabs button { border-radius: 6px 6px 0 0; border-bottom: none; }
+  nav.tabs button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  nav.tabs { align-items: flex-end; }
+  nav.tabs button.print-one { margin-left: auto; margin-bottom: 4px; border-radius: 6px; border-bottom: 1px solid var(--accent); color: var(--accent); font-weight: 600; }
+  nav.tabs button.print-one:hover { background: var(--accent); color: var(--accent-ink); }
+  @media (max-width: 640px) { nav.tabs button.print-one { margin-left: 0; width: 100%; } }
+  main { padding: 0 16px 40px; }
+  /* 입력 패널은 남는 폭을 모두 쓰고, 미리보기는 A4 폭 그대로 */
+  .layout { display: grid; grid-template-columns: minmax(380px, 1fr) auto; gap: 16px; align-items: start; }
+  @media (max-width: 1240px) { .layout { grid-template-columns: 1fr; } }
+  .layout.no-preview { grid-template-columns: 1fr; }
+  .layout.no-preview > section:last-child { display: none; }
+  nav.tabs button.pv-toggle { margin-bottom: 4px; border-radius: 6px; border-bottom: 1px solid var(--line); }
+  .grid-edit textarea.auto { overflow: hidden; resize: none; min-height: 40px; line-height: 1.45; }
+  .editor { background: var(--panel); border: 1px solid var(--line); border-radius: 0 8px 8px 8px; padding: 12px 14px; }
+  .editor h2 { font-size: 14px; margin: 14px 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .editor h2:first-child { margin-top: 0; }
+  .field { margin: 6px 0; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .field input, .field textarea, .field select { width: 100%; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 8px; max-width: none; }
+  .field textarea { min-height: 64px; resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid-edit { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .grid-edit td, .grid-edit th { border: 1px solid var(--line); padding: 2px; }
+  .grid-edit th { background: var(--bg); font-weight: 600; }
+  .grid-edit input, .grid-edit select, .grid-edit textarea { width: 100%; border: none; background: transparent; padding: 3px; font-size: 12px; }
+  .grid-edit textarea { min-height: 40px; resize: vertical; }
+  .grid-edit .del { padding: 0 6px; color: var(--err-ink); }
+  .place-cell { width: 100%; min-height: 40px; text-align: left; border: 1px dashed transparent; background: transparent; padding: 3px 4px; font-size: 12px; border-radius: 4px; }
+  .place-cell:hover { border-color: var(--accent); background: var(--bg); }
+  .place-tag { display: inline-block; font-size: 10px; padding: 0 4px; margin-right: 4px; border-radius: 3px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+  .place-editor { padding: 2px; }
+  .place-editor .ptabs { display: flex; gap: 2px; border-bottom: 2px solid var(--accent); }
+  .place-editor .ptabs button { flex: 1; font-size: 12px; padding: 3px 4px; border-radius: 5px 5px 0 0; border: 1px solid var(--line); border-bottom: none; background: var(--bg); color: var(--muted); }
+  .place-editor .ptabs button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+  .place-editor .ppanel { display: flex; flex-direction: column; gap: 2px; padding: 5px; border: 1px solid var(--accent); border-top: none; border-radius: 0 0 5px 5px; background: var(--bg); }
+  .place-editor .plabel { font-size: 10px; color: var(--muted); }
+  .place-editor input { border: 1px solid var(--line) !important; background: var(--panel) !important; border-radius: 3px; }
+  .place-editor .arrow-down { text-align: center; font-weight: 700; color: var(--accent); line-height: 1; }
+  .place-editor .place-done { font-size: 11px; padding: 2px 8px; align-self: flex-end; margin-top: 3px; }
+  .grid-edit input:disabled { background: var(--bg) !important; color: var(--muted); cursor: not-allowed; }
+  .grid-edit input.off-cell:disabled { background: repeating-linear-gradient(135deg, var(--bg), var(--bg) 4px, var(--panel) 4px, var(--panel) 8px) !important; }
+  .grid-edit input.auto-krw:disabled { color: var(--accent); font-weight: 600; text-align: right; }
+  .sql-box { width: 100%; min-height: 260px; font: 12px/1.45 Consolas, "Courier New", monospace; border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--bg); color: var(--ink); white-space: pre; }
+  .note { font-size: 12px; color: var(--muted); }
+  .warnbox { background: var(--warn-bg); color: var(--warn-ink); border-radius: 6px; padding: 6px 10px; font-size: 12px; margin: 8px 0; }
+  .okbox { background: var(--ok-bg); color: var(--ok-ink); border-radius: 6px; padding: 6px 10px; font-size: 12px; margin: 8px 0; }
+  .preview-wrap { overflow-x: auto; }
+  .preview-tools { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+
+  /* ---------- A4 paper ---------- */
+  /* A4: 내용이 길면 다음 장으로 넘어가고, 꼬리말은 내용 끝(또는 마지막 장 아래)에 붙음 */
+  .page { width: 210mm; min-height: 297mm; background: var(--paper); color: var(--paper-ink); margin: 0 auto 16px; padding: 12mm 13mm 8mm; box-shadow: 0 1px 4px rgba(0,0,0,.2); position: relative; font-family: "Malgun Gothic", "맑은 고딕", sans-serif; font-size: 10pt; display: flex; flex-direction: column; }
+  .page table { border-collapse: collapse; width: 100%; }
+  .page td, .page th { border: 1px solid #000; padding: 2.5px 5px; vertical-align: middle; line-height: 1.35; }
+  .page tr { break-inside: avoid; page-break-inside: avoid; }
+  .page th { background: var(--head); font-weight: 700; text-align: center; white-space: nowrap; }
+  .page .title { font-size: 18pt; font-weight: 700; text-align: center; letter-spacing: 8px; margin: 1mm 0 0; }
+  .page .subtitle { text-align: center; font-size: 10pt; margin-bottom: 3mm; }
+  .page .sec { font-weight: 700; font-size: 10.5pt; margin: 3.5mm 0 1.2mm; break-after: avoid; page-break-after: avoid; }
+  .page .body-text { white-space: pre-wrap; line-height: 1.5; }
+  .page .center { text-align: center; }
+  .page .right { text-align: right; }
+  .page .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .page .sign { height: 16mm; }
+  .page .stamp { display: inline-block; min-width: 18mm; color: #b91c1c; }
+  .page .foot { margin-top: auto; padding-top: 4mm; display: flex; justify-content: space-between; font-size: 8.5pt; color: #333; }
+  .page .head-grid { display: grid; grid-template-columns: 1fr auto; gap: 6mm; align-items: start; margin-bottom: 1mm; }
+  .page .appr td { width: 19mm; text-align: center; }
+  .page .appr .sign { height: 13mm; }
+  .page .pi-sign { margin-top: 5mm; text-align: right; font-size: 10.5pt; line-height: 1.8; break-inside: avoid; page-break-inside: avoid; }
+  .page .pi-sign b { display: inline-block; min-width: 26mm; text-align: center; }
+  .page .kw { background: #fff59d; }
+
+  /* ---------- 사진 드롭 영역 (점선 테두리 + 청록→남색 그라데이션 + 세로 줄무늬) ---------- */
+  .drop-hero { border: 2px dashed #32e6e2; border-radius: 28px; padding: 8px; margin-bottom: 10px; transition: border-color .2s, transform .2s; }
+  .drop-panel { position: relative; overflow: hidden; border-radius: 20px; min-height: 230px; display: flex; align-items: center; justify-content: center; color: #fff;
+    background: linear-gradient(100deg, #128c8a 0%, #0f6f80 35%, #0b2a5c 75%, #050b24 100%); }
+  .drop-panel::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 4px); }
+  .drop-panel::after { content: ''; position: absolute; inset: -40%; pointer-events: none; opacity: .55;
+    background: radial-gradient(closest-side, rgba(50,230,226,.35), transparent 70%); animation: drop-drift 9s ease-in-out infinite alternate; }
+  @keyframes drop-drift { from { transform: translate(-22%, -8%); } to { transform: translate(22%, 10%); } }
+  @media (prefers-reduced-motion: reduce) { .drop-panel::after { animation: none; } }
+  .drop-copy { position: relative; z-index: 1; text-align: center; padding: 18px 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .drop-copy h3 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -.5px; line-height: 1.15; }
+  .drop-copy p { margin: 0; font-size: 13px; opacity: .85; }
+  .drop-icon { opacity: .9; margin-top: 4px; }
+  .drop-when { display: none; font-size: 15px; font-weight: 700; }
+  .t-mob { display: none; }
+  .drop-copy .photo-actions { justify-content: center; margin: 6px 0 0; }
+  .drop-copy .photo-actions .big { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.45); backdrop-filter: blur(2px); }
+  .drop-copy .photo-actions .big.primary { background: #fff; color: #0b2a5c; border-color: #fff; font-weight: 700; }
+  .drop-geo .geo-chip { background: rgba(0,0,0,.35); color: #e6fffe; }
+  .drop-geo .geo-chip.err { background: rgba(153,27,27,.6); color: #fff; }
+  /* 파일을 끌고 들어오면 */
+  .drop-hero.drag-on { border-style: solid; border-color: #7ffffb; transform: scale(1.01); }
+  .drop-hero.drag-on .drop-panel { box-shadow: inset 0 0 0 3px rgba(127,255,251,.8), 0 0 40px rgba(50,230,226,.35); }
+  .drop-hero.drag-on .drop-icon { animation: drop-bob .8s ease-in-out infinite alternate; }
+  .drop-hero.drag-on .drop-when { display: block; }
+  .drop-hero.drag-on .photo-actions, .drop-hero.drag-on .drop-geo { visibility: hidden; }
+  @keyframes drop-bob { from { transform: translateY(2px); } to { transform: translateY(-6px); } }
+  /* 휴대폰(끌어다 놓기 없음): 작게, 버튼 위주 */
+  @media (pointer: coarse), (max-width: 640px) {
+    .drop-panel { min-height: 0; }
+    .drop-copy h3 { font-size: 18px; }
+    .drop-copy p, .drop-icon, .t-desk { display: none; }
+    .t-mob { display: inline; }
+  }
+  /* ---------- 사진등록 ---------- */
+  .photo-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .photo-actions .big { font-size: 16px; padding: 10px 18px; border-radius: 8px; min-width: 96px; }
+  .geo-chip { font-size: 12px; }
+  .sticky-box { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--bg); margin: 6px 0; }
+  .sticky-box label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; }
+  .sticky-row { display: flex; gap: 6px; }
+  .sticky-row textarea { flex: 1; font-size: 15px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); resize: vertical; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; }
+  .photo-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .photo-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .photo-card { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+  .photo-card.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .photo-card.off { opacity: .55; }
+  .photo-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #000; }
+  .pc-body { padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+  .pc-head { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+  .pc-tag { margin-left: auto; color: var(--muted); font-size: 11px; }
+  .pc-body textarea { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; background: var(--panel); color: var(--ink); font-size: 13px; resize: vertical; }
+  .pc-tools { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  button.mini { font-size: 11px; padding: 2px 6px; }
+  button.mini.del { color: var(--err-ink); }
+  /* 촬영 화면 */
+  .cam-overlay { position: fixed; inset: 0; z-index: 100; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; overflow-y: auto; }
+  .cam-frame { position: relative; width: 100%; max-width: calc((100vh - 230px) * 16 / 9); aspect-ratio: 16 / 9; background: #111; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .cam-frame video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam-frame.mirror video { transform: scaleX(-1); }
+  .cam-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #ccc; pointer-events: none; }
+  .cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  .cam-flash.go { animation: camflash .25s ease-out; }
+  @keyframes camflash { from { opacity: .85; } to { opacity: 0; } }
+  .cam-bar { display: flex; align-items: center; justify-content: center; gap: 28px; width: 100%; }
+  .cam-bar button { background: #222; color: #fff; border-color: #555; padding: 8px 14px; border-radius: 8px; }
+  .cam-bar .shutter { width: 68px; height: 68px; border-radius: 50%; background: #fff; border: 5px solid #888; padding: 0; }
+  .cam-bar .shutter:active { transform: scale(.94); }
+  .cam-info { display: flex; gap: 8px; align-items: center; }
+  .sticky-box.in-cam { width: 100%; max-width: 820px; background: #1b1b1b; border-color: #444; color: #fff; }
+  .sticky-box.in-cam textarea { background: #000; color: #fff; border-color: #555; }
+  .sticky-box.in-cam .note, .sticky-box.in-cam .chip { color: #bbb; }
+  .sticky-box.in-cam .chip, .sticky-box.in-cam button { background: #222; border-color: #555; color: #eee; }
+  .cam-strip { display: flex; gap: 4px; overflow-x: auto; width: 100%; max-width: 820px; }
+  .cam-strip img { height: 54px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 3px; }
+  /* 인쇄용 사진 쪽 */
+  .page .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 5mm; }
+  .page .photo-grid figure { margin: 0; break-inside: avoid; page-break-inside: avoid; }
+  .page .photo-grid img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid #999; display: block; }
+  .page .photo-grid figcaption { font-size: 8.5pt; line-height: 1.35; margin-top: 1mm; white-space: pre-wrap; }
+  /* 로그인 */
+  .pick { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: var(--panel); color: var(--ink); font-size: 13px; max-width: 260px; }
+  @media (max-width: 640px) { header.bar h1 { width: 100%; } header.bar select { max-width: 100%; flex: 1; } }
+  #printAll { display: none; }
+  @media print {
+    body.printing-all main { display: none !important; }
+    .layout.no-preview > section:last-child { display: block !important; }
+    body.printing-all #printAll { display: block; }
+    /* 여백은 @page가 매 장마다 잡아 줌 → 두 장으로 넘어가도 위·아래 여백 유지 */
+    @page { size: A4; margin: 12mm 13mm 9mm; }
+    body { background: #fff; }
+    header.bar, nav.tabs, .editor, .preview-tools, .noprint { display: none !important; }
+    main { padding: 0; }
+    .layout { display: block; }
+    .page { box-shadow: none; margin: 0; width: auto; min-height: calc(297mm - 21mm); padding: 0; page-break-after: always; break-after: page; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+    .page .kw { background: none; }
+    .print-hidden { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>출장등록</h1>
+  <select id="docList" title="저장된 문서"><option value="">(새 문서)</option></select>
+  <button id="btnNew">새로 만들기</button>
+  <button id="btnSave" class="primary">저장</button>
+  <button id="btnReload">목록 새로고침</button>
+  <button id="btnDelete">삭제</button>
+  <button id="btnPrintAll" title="기안서·계획서·내역서·결과보고서(+사진 쪽)">전체 인쇄</button>
+  <span id="status" class="status">연결 확인 중…</span>
+</header>
+
+<nav class="tabs" id="tabs"></nav>
+<main id="main"></main>
+
+<script>
+/* =========================================================
+   Supabase 설정 — 화면의 [설정] 탭에서 바꿀 수 있습니다.
+   publishable(anon) 키는 브라우저에서 쓰는 공개용 키이며,
+   데이터 보호는 Supabase의 RLS 정책으로 합니다 (schema.sql 참고).
+   ========================================================= */
+const DEFAULT_SB_URL = 'https://jgvikmakenpllwxwdugk.supabase.co';
+const DEFAULT_SB_KEY = 'sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S';
+const TABLE = 'trip_docs';
+/* schema.sql 과 같은 내용 — [설정] 탭에 표시 */
+const SCHEMA_SQL = `-- 출장등록 저장용 테이블 (개인용: 로그인 없이 사용)
+-- Supabase 대시보드 > SQL Editor 에 붙여넣고 한 번 실행하세요. 다시 실행해도 데이터는 지워지지 않습니다.
+
+create table if not exists public.trip_docs (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null default '',
+  data        jsonb not null default '{}'::jsonb,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create index if not exists trip_docs_updated_at_idx on public.trip_docs (updated_at desc);
+
+alter table public.trip_docs enable row level security;
+
+drop policy if exists "trip_docs anon select" on public.trip_docs;
+drop policy if exists "trip_docs anon insert" on public.trip_docs;
+drop policy if exists "trip_docs anon update" on public.trip_docs;
+drop policy if exists "trip_docs anon delete" on public.trip_docs;
+
+create policy "trip_docs anon select" on public.trip_docs for select to anon using (true);
+create policy "trip_docs anon insert" on public.trip_docs for insert to anon with check (true);
+create policy "trip_docs anon update" on public.trip_docs for update to anon using (true) with check (true);
+create policy "trip_docs anon delete" on public.trip_docs for delete to anon using (true);
+
+-- 멤버 목록은 별도 테이블 없이 trip_docs 안의 '__members__' 행에 저장됩니다(앱 [설정] 탭에서 관리).
+`;
+
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+let sb = null;
+function initSupabase() {
+  const url = lsGet('sb_url', DEFAULT_SB_URL).trim();
+  const key = lsGet('sb_key', DEFAULT_SB_KEY).trim();
+  try {
+    sb = (window.supabase && url && key) ? window.supabase.createClient(url, key) : null;
+  } catch (e) { sb = null; }
+}
+
+/* ---------------- 기본 데이터 ---------------- */
+const KEYWORD = '배터리 시제품';
+function defaultDoc() {
+  return {
+    title: '2026.11 일본 나고야 출장',
+    common: {
+      bizName: '글로벌 강소기업 R&D 연계지원사업 (중소기업기술혁신개발사업 수출지향형)',
+      projNo: 'RS-2023-00276473',
+      projName: 'EV 배터리용 콜렉터(Collector) 부품의 복합 판단조 융합 공정 및 제조기술개발',
+      org: '㈜태진다이텍',
+      pi: '박기근', piTitle: '연구소장',
+      draftDate: '2026-10-16',
+      writer: '강병주', writerTitle: '팀장', writerDept: '품질관리팀',
+      dest: '일본 아이치현 나고야',
+      start: '2026-11-23', end: '2026-11-27',
+      payMethods: ['7966', '현금', '계좌이체'],
+      currency: 'JPY',
+      rates: { JPY: 9.2 },
+      travelers: [ { name: '강병주', dept: '품질관리팀', pos: '팀장', role: '참여연구원 (비전·신뢰성 분석)' } ],
+      purpose: 'EV 배터리 시제품(Current Collector Anode·Cathode)의 프레스 성형 품질 확보를 위한 일본 제조기업의 품질관리·불량검출 기술 조사 및 전문가 자문',
+      visit: '도요타 관련 교육기관(현장개선 실습), AVEX㈜ 공장, Factory Innovation Week NAGOYA 2026 전시회, 일본 기술전문가 1:1 컨설팅'
+    },
+    gian: {
+      subject: '글로벌 강소기업 R&D 과제 해외출장(일본 나고야) 기안의 건',
+      intro: '당사 수행 과제 「EV 배터리용 콜렉터(Collector) 부품의 복합 판단조 융합 공정 및 제조기술개발」의 배터리 시제품 품질 확보와 비전 기반 불량검출 기술 고도화를 위하여, 아래와 같이 해외출장을 기안하오니 재가하여 주시기 바랍니다.',
+      content: '1) 일본 제조기업의 공정 내 품질관리·불량검출 방식 조사 → 배터리 시제품(Collector) 버(Burr)·치수 불량 검출 기준에 반영\n2) Factory Innovation Week NAGOYA 2026 참관: 비전 검사·자동화·스마트공장 장비 정보 수집 (배터리 시제품 인라인 검사 적용 검토)\n3) 일본 기술전문가 1:1 컨설팅: 프레스 성형품 품질관리·재발방지 체계 자문 → 배터리 시제품 양산 공정에 적용',
+      attach: '1. 출장계획서 1부  2. 사업비 집행내역서 1부.  끝.'
+    },
+    plan: {
+      schedule: [
+        { date: '2026-11-23', mode: 'move', from: '인천', to: '나고야', area: '', bldg: '', content: '출국(KE745), 제조혁신·TPS 강의, 지속적 개선 사례 학습' },
+        { date: '2026-11-24', mode: 'stay', from: '', to: '', area: '나고야', bldg: '강의장', content: '현장개선 실습(LOT → 1개 흘리기 → Pull·Kanban), 공정 낭비요인 발굴 실습' },
+        { date: '2026-11-25', mode: 'stay', from: '', to: '', area: '나고야', bldg: 'AVEX㈜ / 전시장', content: 'AVEX㈜ 공장 견학(품질·방침관리), Factory Innovation Week NAGOYA 2026 참관 – 비전 검사·자동화 장비 조사' },
+        { date: '2026-11-26', mode: 'stay', from: '', to: '', area: '나고야', bldg: '강의장', content: '일본 기술전문가 1:1 컨설팅 – 배터리 시제품 프레스 성형 품질·불량검출 방안 자문' },
+        { date: '2026-11-27', mode: 'move', from: '나고야', to: '인천', area: '', bldg: '', content: '귀국(KE746)' }
+      ],
+      goal: '1) 배터리 시제품(Collector) 비전 불량검출률 목표(100%) 달성을 위한 검사 기준·장비 정보 확보\n2) 버(Max 50µm)·치수(±0.05mm) 등 정량 목표 관련 공정 내 품질관리 기법 조사\n3) 일본 전문가 자문을 통한 배터리 시제품 양산 공정 개선과제 도출',
+      budget: [
+        { item: '항공료', basis: '인천↔나고야 왕복(KE745/KE746) 1명 × 770,000원 (예상, 발권 시 확정)', region: '국내', fx: '', krw: 770000 },
+        { item: '출장 개인여비', basis: '1명 × 200,000원', region: '국내', fx: '', krw: 200000 },
+        { item: '현지 석식', basis: '2~4일차 석식 1명 × 3회 × 5,000엔 (재단 미지원분)', region: '해외', fx: 15000, krw: '' }
+      ],
+      effect: '조사 결과를 배터리 시제품 공정평가 기술 개발(비전 기반)에 반영하고, 귀국 후 출장결과보고서와 사내 공유회를 통해 과제 참여연구원에게 전파'
+    },
+    exp: {
+      purpose: '배터리 시제품 품질 확보를 위한 일본 제조기업 품질관리·불량검출 기술 조사\n일본 기술전문가 자문을 통한 배터리 시제품 양산 공정 개선과제 도출',
+      region: '일본(나고야 _ AVEX㈜ / Factory Innovation Week NAGOYA 2026)',
+      travelersText: '강병주',
+      rows: [
+        { no: 1, date: '2026-11-23', pay: '7966', region: '국내', store: '대한항공 (재단 지정 여행사)', fx: '', krw: 770000, payDate: '', item: '항공료\n(1명*770,000)', scope: '과제', note: '예상 금액, 발권 시 확정' },
+        { no: 2, date: '2026-11-23', pay: '계좌이체', region: '국내', store: '강병주', fx: '', krw: 200000, payDate: '', item: '출장 개인여비\n(1명 *20만원)', scope: '과제', note: '' }
+      ],
+      note: '숙박·중식·현지교통·전시회 참관비·컨설팅 비용은 주관기관((재)한일산업기술협력재단) 지원으로 과제 사업비 집행 없음.'
+    },
+    report: {
+      daily: [
+        { date: '2026-11-23', content: '' },
+        { date: '2026-11-24', content: '' },
+        { date: '2026-11-25', content: '' },
+        { date: '2026-11-26', content: '' },
+        { date: '2026-11-27', content: '' }
+      ],
+      findings: '',
+      apply: '',
+      next: ''
+    },
+    /* 사진: { id, dataUrl(JPEG 16:9, 50KB 이하), w, h, kb, takenAt(로컬시각), lat, lng, acc, locSrc('gps'|'exif'|'manual'|'pending'|'none'), comment, source('camera'|'selfie'|'gallery'), include } */
+    photos: []
+  };
+}
+
+let doc = defaultDoc();
+let currentId = null;
+let currentTab = 'common';
+
+/* ---------------- 유틸 ---------------- */
+const $ = (s, el) => (el || document).querySelector(s);
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function won(n) { n = Number(n) || 0; return n.toLocaleString('ko-KR'); }
+function fmtDate(d) { if (!d) return ''; const [y, m, dd] = d.split('-'); return `${y}. ${m}. ${dd}`; }
+const WD = ['일','월','화','수','목','금','토'];
+function fmtDateW(d) { if (!d) return ''; const t = new Date(d + 'T00:00:00'); return `${fmtDate(d)}(${WD[t.getDay()]})`; }
+function nights(a, b) { if (!a || !b) return ''; const n = Math.round((new Date(b) - new Date(a)) / 86400000); return n >= 0 ? `${n}박 ${n + 1}일` : ''; }
+function hl(text) { return esc(text).split(KEYWORD).join(`<span class="kw">${KEYWORD}</span>`); }
+function n0(v) { return Number(String(v == null ? '' : v).replace(/,/g, '')) || 0; }
+function rowsOf(scope) { return doc.exp.rows.filter(r => !scope || r.scope === scope); }
+/* ---------- 통화 ----------
+   출장지 글자로 통화를 고르고, 통화마다 환율(1 단위 = ? 원)을 따로 기억 */
+const CURRENCIES = [
+  { code: 'JPY', name: '엔', re: /일본|도쿄|동경|오사카|나고야|요코하마|후쿠오카|교토|고베|가와사키|japan|tokyo|osaka|nagoya/i },
+  { code: 'USD', name: '달러', re: /미국|뉴욕|라스베이거스|시카고|디트로이트|샌프란시스코|로스앤젤레스|애틀랜타|휴스턴|usa|u\.s\.|america/i },
+  { code: 'EUR', name: '유로', re: /독일|프랑크푸르트|뮌헨|슈투트가르트|하노버|뒤셀도르프|프랑스|파리|이탈리아|밀라노|스페인|네덜란드|벨기에|오스트리아|핀란드|유럽|germany|france|italy|spain|netherlands|belgium/i },
+  { code: 'CNY', name: '위안', re: /중국|상하이|베이징|북경|선전|심천|광저우|쑤저우|칭다오|톈진|china|shanghai|beijing/i },
+  { code: 'PLN', name: '즈워티', re: /폴란드|바르샤바|브로츠와프|poland/i },
+  { code: 'VND', name: '동', re: /베트남|하노이|호찌민|호치민|vietnam/i },
+  { code: 'THB', name: '바트', re: /태국|방콕|thailand/i },
+  { code: 'GBP', name: '파운드', re: /영국|런던|uk\b|england|london/i },
+  { code: 'MXN', name: '페소', re: /멕시코|mexico/i },
+  { code: 'INR', name: '루피', re: /인도(?!네시아)|뉴델리|첸나이|india/i }
+];
+function curCode() { return doc.common.currency || 'JPY'; }
+function curName() { const c = CURRENCIES.find(x => x.code === curCode()); return c ? c.name : curCode(); }
+/* ---------- 결제수단 (공통 정보에 등록) ---------- */
+function payMethods() { const p = doc.common.payMethods; return (Array.isArray(p) && p.length) ? p : ['현금']; }
+function defaultCard() { return payMethods().find(m => /^\d{4}$/.test(m)) || payMethods().find(m => !/현금/.test(m)) || payMethods()[0]; }
+function cashMethod() { return payMethods().find(m => /현금/.test(m)) || defaultCard(); }
+let curAutoMsg = '';
+function curNoteHtml() {
+  const parts = [];
+  if (curAutoMsg) parts.push(`<div class="okbox">${esc(curAutoMsg)}</div>`);
+  if (!rate()) parts.push(`<div class="warnbox">${esc(curCode())} 환율이 비어 있습니다. 해외 사용분이 0원으로 계산되니 카드 결제일 기준 환율을 넣어 주세요.</div>`);
+  const fxCount = doc.exp.rows.filter(r => isFx(r) && n0(r.fx)).length + planBudget().filter(b => b.region === '해외' && n0(b.fx)).length;
+  if (curAutoMsg && fxCount) parts.push(`<div class="warnbox">이미 입력된 외화 금액 ${fxCount}건(집행내역·소요예산)은 이제 ${esc(curCode())}로 계산됩니다. 금액을 확인해 주세요.</div>`);
+  parts.push(`<p class="note">출장지를 입력하면 통화가 자동으로 바뀝니다(일본→JPY, 미국→USD, 독일·프랑스→EUR, 중국→CNY 등). 직접 바꿔도 됩니다. 환율은 통화마다 따로 기억하며, 집행내역서의 해외 사용분을 원화로 바꿔 기안서·계획서·집행내역서 합계에 반영합니다.</p>`);
+  return parts.join('');
+}
+function detectCurrency(dest) { const c = CURRENCIES.find(x => x.re.test(dest || '')); return c ? c.code : null; }
+function isFx(r) { return r.region === '해외'; }
+/* 행별 원화: 국내 = 입력한 원, 해외 = 외화 × 환율 (자동) */
+function krwOf(r) { return isFx(r) ? Math.round(n0(r.fx) * rate()) : n0(r.krw); }
+function sumFx(rows) { return rows.reduce((s, r) => s + (isFx(r) ? n0(r.fx) : 0), 0); }
+function sumKrw(rows) { return rows.reduce((s, r) => s + krwOf(r), 0); }
+function sumKrwDomestic(rows) { return rows.reduce((s, r) => s + (isFx(r) ? 0 : n0(r.krw)), 0); }
+function isCash(r) { return /현금/.test(r.pay || ''); }
+/* 과제 사업비 합계(원) = 국내 원화 + 해외 외화 × 환율 */
+function rate() { return n0((doc.common.rates || {})[curCode()]); }
+function total() { return sumKrw(rowsOf('과제')); }
+/* 일정 장소: 이동(전 → 후) 또는 장소(1곳) */
+function placeText(s) {
+  if (s.mode === 'move') return (s.from || s.to) ? `${s.from || '?'} → ${s.to || '?'}` : '';
+  /* 장소 = 지역 + 건물 (예: 나고야 강의장) */
+  if (s.area || s.bldg) return [s.area, s.bldg].filter(Boolean).join(' ');
+  return s.place || '';
+}
+function catOf(r) { return String(r.item || '').split('\n')[0].replace(/\(.*$/, '').trim() || '기타'; }
+/* 집행내역서(실적)의 과제분을 항목별로 묶음 → 소요예산 가져오기에 사용 */
+function budgetFromExp(rows, rateVal) {
+  const by = {}, order = [];
+  rows.filter(r => r.scope === '과제').forEach(r => {
+    const k = catOf(r);
+    if (!by[k]) { by[k] = 0; order.push(k); }
+    by[k] += r.region === '해외' ? Math.round(n0(r.fx) * rateVal) : n0(r.krw);
+  });
+  return order.map(k => ({ item: k, basis: '집행내역서 기준', region: '국내', fx: '', krw: Math.round(by[k]) }));
+}
+/* ---------- 소요예산 (출장계획서에서 입력, 기안서·계획서에 표시) ---------- */
+function budgetKrw(b) { return b.region === '해외' ? Math.round(n0(b.fx) * rate()) : n0(b.krw); }
+function planBudget() { return (doc.plan && doc.plan.budget) || []; }
+function planTotal() { return planBudget().reduce((s, b) => s + budgetKrw(b), 0); }
+function diffText() { const d = total() - planTotal(); return d === 0 ? '동일' : (d > 0 ? `${won(d)}원 초과` : `${won(-d)}원 절감`); }
+function budgetTable() {
+  const rs = planBudget();
+  const hasFx = rs.some(b => b.region === '해외' && n0(b.fx));
+  return `<table>
+      <tr><th style="width:30mm">항목</th><th>산출근거</th><th style="width:32mm">금액(원)</th></tr>
+      ${rs.map(b => `<tr><td class="center">${esc(b.item)}</td>
+        <td>${esc(b.basis)}${b.region === '해외' && n0(b.fx) ? ` <span style="color:#555">(${won(b.fx)} ${esc(curCode())})</span>` : ''}</td>
+        <td class="num">${won(budgetKrw(b))}</td></tr>`).join('')}
+      <tr><th colspan="2">합 계 (과제 사업비)</th><td class="num"><b>${won(planTotal())}</b></td></tr>
+    </table>
+    ${hasFx ? `<div style="font-size:9pt;margin-top:1mm">※ 외화(${esc(curCode())}) 예산은 환율 1${esc(curCode())} = ${esc(rate())}원 기준 환산</div>` : ''}`;
+}
+function travelersText() { return doc.common.travelers.map(t => `${t.name} ${t.pos}(${t.dept})`).join(', '); }
+function setStatus(msg, kind) { const s = $('#status'); s.textContent = msg; s.className = 'status' + (kind ? ' ' + kind : ''); }
+
+function getPath(path) { return path.split('.').reduce((o, k) => o == null ? o : o[k], doc); }
+function setPath(path, val) {
+  const ks = path.split('.'); let o = doc;
+  for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]];
+  o[ks[ks.length - 1]] = val;
+}
+
+/* ---------------- 결재란·공통 머리 ---------------- */
+function approvalBox(cols) {
+  return `<table class="appr"><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr><tr>${cols.map(() => '<td class="sign"></td>').join('')}</tr></table>`;
+}
+function piSign(label) {
+  const c = doc.common;
+  return `<div class="pi-sign">${esc(fmtDate(c.draftDate))}&nbsp;&nbsp;&nbsp;&nbsp;${label || '과제책임자'} : ${esc(c.org)} ${esc(c.piTitle)} <b>${esc(c.pi)}</b> <span class="stamp">(인)</span></div>`;
+}
+function foot(code) { return `<div class="foot"><span>${code || 'TJ-QF0708-01(0)'}</span><span>(주) 태진다이텍</span><span>A4(210X297)</span></div>`; }
+function projTable() {
+  const c = doc.common;
+  return `<table>
+    <tr><th style="width:24mm">사 업 명</th><td colspan="3">${esc(c.bizName)}</td></tr>
+    <tr><th>과제번호</th><td>${esc(c.projNo)}</td><th style="width:24mm">과제책임자</th><td>${esc(c.pi)} ${esc(c.piTitle)}</td></tr>
+    <tr><th>과 제 명</th><td colspan="3">${hl(c.projName)}</td></tr>
+  </table>`;
+}
+
+/* ---------------- 문서 렌더 ---------------- */
+function renderGian() {
+  const c = doc.common, g = doc.gian;
+  return `<div class="page">
+    <div class="head-grid">
+      <div>
+        <div class="title" style="text-align:left;letter-spacing:6px">기 안 서</div>
+        <div class="subtitle" style="text-align:left">(품의, 보고)</div>
+      </div>
+      ${approvalBox(['작성', '검토', '과제책임자', '승인'])}
+    </div>
+    <table>
+      <tr><th style="width:24mm">보존년한</th><td>5년</td><th style="width:24mm">기안일자</th><td>${esc(fmtDate(c.draftDate))}</td></tr>
+      <tr><th>작 성 자</th><td>${esc(c.writer)} ${esc(c.writerTitle)}</td><th>소속</th><td>${esc(c.writerDept)}</td></tr>
+      <tr><th>수 신</th><td>대표이사</td><th>참 조</th><td>연구소장(과제책임자)</td></tr>
+      <tr><th>제 목</th><td colspan="3"><b>${hl(g.subject)}</b></td></tr>
+    </table>
+    <div class="sec">1. 취 지</div>
+    <div class="body-text">${hl(g.intro)}</div>
+    <div class="sec">2. 과제 개요</div>
+    ${projTable()}
+    <div class="sec">3. 출장 개요</div>
+    <table>
+      <tr><th style="width:24mm">출 장 지</th><td>${esc(c.dest)}</td><th style="width:20mm">출장기간</th><td style="width:62mm">${esc(fmtDateW(c.start))} ~ ${esc(fmtDateW(c.end))} (${nights(c.start, c.end)})</td></tr>
+      <tr><th>출 장 자</th><td colspan="3">${esc(travelersText())}</td></tr>
+      <tr><th>출장목적</th><td colspan="3">${hl(c.purpose)}</td></tr>
+      <tr><th>방 문 처</th><td colspan="3">${esc(c.visit)}</td></tr>
+    </table>
+    <div class="sec">4. 주요 내용</div>
+    <div class="body-text">${hl(g.content)}</div>
+    <div class="sec">5. 소요 예산 (과제 사업비)</div>
+    ${budgetTable()}
+    <div class="body-text" style="margin-top:3mm">위 내용과 같이 기안하오니 재가하여 주시기 바랍니다.\n붙임 : ${esc(g.attach)}</div>
+    ${piSign()}
+    ${foot()}
+  </div>`;
+}
+
+function renderPlan() {
+  const c = doc.common, p = doc.plan;
+  return `<div class="page">
+    <div class="head-grid">
+      <div><div class="title" style="text-align:left">출장계획서</div><div class="subtitle" style="text-align:left">(국외출장)</div></div>
+      ${approvalBox(['작성', '과제책임자', '대표이사'])}
+    </div>
+    ${projTable()}
+    <div class="sec">1. 출장 개요</div>
+    <table>
+      <tr><th style="width:24mm">출 장 지</th><td>${esc(c.dest)}</td><th style="width:20mm">출장기간</th><td style="width:62mm">${esc(fmtDateW(c.start))} ~ ${esc(fmtDateW(c.end))} (${nights(c.start, c.end)})</td></tr>
+      <tr><th>출 장 자</th><td colspan="3">${c.travelers.map(t => `${esc(t.name)} ${esc(t.pos)}(${esc(t.dept)})${t.role ? ` – ${esc(t.role)}` : ''}`).join('<br>')}</td></tr>
+      <tr><th>출장목적</th><td colspan="3">${hl(c.purpose)}</td></tr>
+      <tr><th>방 문 처</th><td colspan="3">${esc(c.visit)}</td></tr>
+    </table>
+    <div class="sec">2. 세부 일정</div>
+    <table>
+      <tr><th style="width:30mm">일자</th><th style="width:32mm">장소</th><th>주요 내용</th></tr>
+      ${p.schedule.map(s => `<tr><td class="center">${esc(fmtDateW(s.date))}</td><td class="center">${esc(placeText(s))}</td><td>${hl(s.content)}</td></tr>`).join('')}
+    </table>
+    <div class="sec">3. 출장 목표 (과제 연계)</div>
+    <div class="body-text">${hl(p.goal)}</div>
+    <div class="sec">4. 소요 예산</div>
+    ${budgetTable()}
+    <div class="sec">5. 기대 효과</div>
+    <div class="body-text">${hl(p.effect)}</div>
+    ${piSign()}
+    ${foot()}
+  </div>`;
+}
+
+/* 사내 양식: [ 출장 경비 내역서 ] (일본도쿄_출장비내역250715.xls 기준) */
+function renderExp() {
+  const c = doc.common, e = doc.exp;
+  const all = e.rows, task = rowsOf('과제');
+  const CUR = esc(curCode());
+  const cash = all.filter(isCash), card = all.filter(r => !isCash(r));
+  const days = (c.start && c.end) ? Math.round((new Date(c.end) - new Date(c.start)) / 86400000) + 1 : '';
+  const cell = v => esc(v).replace(/\n/g, '<br>');
+  return `<div class="page exp-page" style="font-size:9pt">
+    <div class="head-grid">
+      <div class="title" style="font-size:17pt;letter-spacing:2px;text-align:left;margin-top:4mm">[ 출장 경비 내역서 ]</div>
+      ${approvalBox(['연구원', '연구소장', '대표이사'])}
+    </div>
+    <table class="noborder" style="margin:3mm 0 2mm;font-size:10pt">
+      <tr><td style="border:none;width:28mm;vertical-align:top">1. 출장목적 :</td><td style="border:none">${hl(e.purpose).replace(/\n/g, '<br>')}</td></tr>
+      <tr><td style="border:none">2. 출장지역 :</td><td style="border:none">${esc(e.region)}</td></tr>
+      <tr><td style="border:none">3. 출장기간 :</td><td style="border:none">${esc(fmtDate(c.start))} ~ ${esc(fmtDate(c.end))}${days ? ` (${days}일간)` : ''}</td></tr>
+      <tr><td style="border:none">4. 출 장 자 :</td><td style="border:none">${esc(e.travelersText)}</td></tr>
+      <tr><td style="border:none">5. 과 제 명 :</td><td style="border:none">${hl(c.projName)} (${esc(c.projNo)})</td></tr>
+    </table>
+    <div class="right" style="margin-bottom:1mm">${esc(c.org)}</div>
+    <table>
+      <tr><th style="width:9mm">증빙<br>번호</th><th style="width:19mm">이용일자</th><th style="width:15mm">카드번호</th><th style="width:10mm">매출<br>구분</th><th>가맹점명</th><th style="width:15mm">이용금액<br>(${CUR})</th><th style="width:18mm">이용금액<br>(KRW)</th><th style="width:17mm">결제일자</th><th style="width:28mm">내용</th><th style="width:10mm">구분</th><th style="width:16mm">비고</th></tr>
+      ${all.map(r => `<tr${r.scope === '비과제' ? ' style="color:#666"' : ''}>
+        <td class="center">${esc(r.no)}</td><td class="center">${esc(fmtDate(r.date))}</td><td class="center">${esc(r.pay)}</td><td class="center">${esc(r.region)}</td>
+        <td>${cell(r.store)}</td>
+        <td class="num">${isFx(r) && n0(r.fx) ? won(r.fx) : ''}</td>
+        <td class="num">${krwOf(r) ? won(krwOf(r)) : ''}</td>
+        <td class="center">${esc(fmtDate(r.payDate))}</td><td>${cell(r.item)}</td><td class="center">${esc(r.scope)}</td><td>${cell(r.note)}</td></tr>`).join('')}
+      <tr><th colspan="5">TOTAL</th><td class="num"><b>${won(sumFx(all))}</b></td><td class="num"><b>${won(sumKrw(all))}</b></td><td colspan="4"></td></tr>
+      <tr><td colspan="5" class="right">현금</td><td class="num">${won(sumFx(cash))}</td><td class="num">${won(sumKrw(cash))}</td><td colspan="4"></td></tr>
+      <tr><td colspan="5" class="right">카드 등</td><td class="num">${won(sumFx(card))}</td><td class="num">${won(sumKrw(card))}</td><td colspan="4"></td></tr>
+    </table>
+    <div style="font-size:8.5pt;margin-top:1mm">※ 해외 사용분의 KRW는 환율 1${CUR} = ${esc(rate())}원 기준 환산액</div>
+    <div class="sec" style="font-size:10pt">과제 사업비 집행 합계</div>
+    <table style="font-size:10pt">
+      <tr><th>구분</th><th>해외 (${CUR})</th><th>해외 원화 환산</th><th>국내 (KRW)</th><th>합계 (원)</th></tr>
+      ${['과제', '비과제'].map(sc => { const rs = rowsOf(sc); return `<tr><td class="center">${sc}</td>
+        <td class="num">${won(sumFx(rs))}</td><td class="num">${won(sumKrw(rs) - sumKrwDomestic(rs))}</td>
+        <td class="num">${won(sumKrwDomestic(rs))}</td><td class="num">${sc === '과제' ? `<b>${won(sumKrw(rs))}</b>` : won(sumKrw(rs))}</td></tr>`; }).join('')}
+    </table>
+    ${e.note ? `<div class="body-text" style="margin-top:2mm;font-size:9pt">※ ${esc(e.note)}</div>` : ''}
+    ${piSign()}
+    ${foot()}
+  </div>`;
+}
+
+function renderReport() {
+  const c = doc.common, r = doc.report;
+  return `<div class="page">
+    <div class="head-grid">
+      <div><div class="title" style="text-align:left">출장결과보고서</div><div class="subtitle" style="text-align:left">(국외출장)</div></div>
+      ${approvalBox(['작성', '과제책임자', '대표이사'])}
+    </div>
+    ${projTable()}
+    <div class="sec">1. 출장 개요</div>
+    <table>
+      <tr><th style="width:24mm">출 장 지</th><td>${esc(c.dest)}</td><th style="width:24mm">출장기간</th><td>${esc(fmtDate(c.start))} ~ ${esc(fmtDate(c.end))}</td></tr>
+      <tr><th>출 장 자</th><td colspan="3">${esc(travelersText())}</td></tr>
+      <tr><th>출장목적</th><td colspan="3">${hl(c.purpose)}</td></tr>
+    </table>
+    <div class="sec">2. 일자별 수행 내용</div>
+    <table>
+      <tr><th style="width:30mm">일자</th><th>수행 내용</th></tr>
+      ${r.daily.map(d => `<tr><td class="center">${esc(fmtDateW(d.date))}</td><td class="body-text">${hl(d.content) || '&nbsp;'}</td></tr>`).join('')}
+    </table>
+    <div class="sec">3. 주요 결과</div>
+    <div class="body-text">${hl(r.findings) || '&nbsp;'}</div>
+    <div class="sec">4. ${KEYWORD} 적용 방안</div>
+    <div class="body-text">${hl(r.apply) || '&nbsp;'}</div>
+    <div class="sec">5. 향후 계획</div>
+    <div class="body-text">${hl(r.next) || '&nbsp;'}</div>
+    ${(() => { const n = photos().filter(p => p.include !== false).length; return n ? `<div class="sec">6. 현장 사진</div><div class="body-text">별첨 사진 ${n}장 (다음 쪽)</div>` : ''; })()}
+    ${piSign()}
+    ${foot()}
+  </div>`;
+}
+
+const DOCS = {
+  gian:   { label: '1. 기안서',          render: renderGian,   text: () => [doc.gian.subject, doc.gian.intro, doc.gian.content, doc.common.purpose].join(' ') },
+  plan:   { label: '2. 출장계획서',      render: renderPlan,   text: () => [doc.common.purpose, doc.plan.goal, doc.plan.effect, ...doc.plan.schedule.map(s => s.content)].join(' ') },
+  exp:    { label: '3. 사업비 집행내역서', render: renderExp,    text: () => '' },
+  report: { label: '4. 출장결과보고서',   render: renderReport, text: () => [doc.common.purpose, doc.report.findings, doc.report.apply, doc.report.next, ...doc.report.daily.map(d => d.content)].join(' ') },
+  photos: { label: '5. 사진등록',        render: renderPhotos, text: () => '' }
+};
+
+/* ---------------- 편집기 ---------------- */
+function fld(label, path, type) {
+  const v = getPath(path);
+  if (type === 'area') return `<div class="field"><label>${label}</label><textarea data-path="${path}">${esc(v)}</textarea></div>`;
+  return `<div class="field"><label>${label}</label><input type="${type || 'text'}" data-path="${path}" value="${esc(v)}"></div>`;
+}
+function keywordCheck(key) {
+  if (!DOCS[key] || key === 'exp' || key === 'photos') return '';
+  const ok = DOCS[key].text().includes(KEYWORD);
+  return ok ? `<div class="okbox">‘${KEYWORD}’ 문구가 들어 있습니다.</div>`
+            : `<div class="warnbox">‘${KEYWORD}’ 문구가 없습니다. 증빙 요건상 반드시 넣어야 합니다.</div>`;
+}
+
+function editorCommon() {
+  const c = doc.common;
+  return `<h2>과제 정보</h2>
+    ${fld('사업명', 'common.bizName')}
+    <div class="row2">${fld('과제번호', 'common.projNo')}${fld('주관기관', 'common.org')}</div>
+    ${fld('과제명', 'common.projName', 'area')}
+    <div class="row2">${fld('과제책임자 (날인자)', 'common.pi')}${fld('과제책임자 직위', 'common.piTitle')}</div>
+    <h2>작성자 ${memberPick('pickWriter', '멤버에서 선택')}</h2>
+    <div class="row2">${fld('작성자', 'common.writer')}${fld('직위', 'common.writerTitle')}</div>
+    <div class="row2">${fld('소속', 'common.writerDept')}${fld('작성(기안)일자', 'common.draftDate', 'date')}</div>
+    <h2>출장 정보</h2>
+    ${fld('출장지', 'common.dest')}
+    <div class="row2">${fld('출발일', 'common.start', 'date')}${fld('귀국일', 'common.end', 'date')}</div>
+    <div class="field"><label>결제수단 (집행내역서에서 선택)</label>
+      <table class="grid-edit" style="max-width:420px"><tr><th style="width:36px">No</th><th>결제수단</th><th style="width:90px">종류</th><th></th></tr>
+        ${payMethods().map((m, i) => `<tr>
+          <td class="center">${i + 1}</td>
+          <td><input data-path="common.payMethods.${i}" data-pay-method="${i}" value="${esc(m)}" placeholder="카드 끝 4자리 또는 현금·계좌이체"></td>
+          <td class="note" style="text-align:center">${/^\d{4}$/.test(m) ? '법인카드' : /현금/.test(m) ? '현금' : '기타'}</td>
+          <td>${payMethods().length > 1 ? `<button class="del" data-del="common.payMethods" data-i="${i}">×</button>` : ''}</td></tr>`).join('')}
+      </table>
+      <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">
+        <button data-add="payCard">+ 카드 추가</button><button data-add="payOther">+ 기타 추가</button>
+      </div>
+    </div>
+    <p class="note">카드는 <b>끝 4자리</b>만 넣으세요(전체 번호 금지). 이름을 바꾸면 그 결제수단을 쓰던 집행내역 행도 함께 바뀝니다. ‘현금’이 들어간 항목은 내역서 하단 현금 합계로, 나머지는 카드 합계로 집계됩니다.</p>
+    <div class="row2">
+      <div class="field"><label>현지 통화</label>
+        <select id="curSel" data-cur="1">${CURRENCIES.map(x => `<option value="${x.code}" ${x.code === curCode() ? 'selected' : ''}>${x.code} (${x.name})</option>`).join('')}</select></div>
+      <div class="field"><label id="rateLabel">환율 (1 ${esc(curCode())} = ? 원)</label>
+        <input id="rateInp" type="number" step="0.0001" min="0" data-path="common.rates.${esc(curCode())}" value="${esc((c.rates || {})[curCode()] ?? '')}" placeholder="환율 입력"></div>
+    </div>
+    <div id="curNote">${curNoteHtml()}</div>
+    ${fld('출장목적', 'common.purpose', 'area')}
+    ${fld('방문처', 'common.visit', 'area')}
+    <h2>출장자 ${memberPick('pickTraveler', '멤버에서 추가')}</h2>
+    <table class="grid-edit"><tr><th>성명</th><th>소속</th><th>직위</th><th>과제 내 역할</th><th></th></tr>
+      ${c.travelers.map((t, i) => `<tr>
+        <td><input data-path="common.travelers.${i}.name" value="${esc(t.name)}"></td>
+        <td><input data-path="common.travelers.${i}.dept" value="${esc(t.dept)}"></td>
+        <td><input data-path="common.travelers.${i}.pos" value="${esc(t.pos)}"></td>
+        <td><input data-path="common.travelers.${i}.role" value="${esc(t.role)}"></td>
+        <td><button class="del" data-del="common.travelers" data-i="${i}">×</button></td></tr>`).join('')}
+    </table>
+    <button data-add="traveler" style="margin-top:6px">+ 출장자 추가</button>`;
+}
+function editorGian() {
+  return `${keywordCheck('gian')}
+    ${fld('제목', 'gian.subject')}
+    ${fld('취지', 'gian.intro', 'area')}
+    ${fld('주요 내용', 'gian.content', 'area')}
+    ${fld('붙임', 'gian.attach')}
+    <p class="note">출장 개요·예산은 [공통 정보]와 [집행내역서]에서 자동으로 가져옵니다.</p>`;
+}
+let editingPlace = null;   // 장소 편집 중인 일정 행 번호
+function placeCell(s, i) {
+  if (editingPlace !== i) {
+    const t = placeText(s);
+    return `<button class="place-cell" data-place-edit="${i}" title="클릭해서 장소 입력">
+      ${t ? `<span class="place-tag">${s.mode === 'move' ? '이동' : '장소'}</span>${esc(t)}` : '<span class="note">클릭해서 입력</span>'}</button>`;
+  }
+  const mv = s.mode === 'move';
+  return `<div class="place-editor">
+      <div class="ptabs" role="tablist">
+        <button role="tab" aria-selected="${mv}" data-place-mode="move" data-i="${i}" class="${mv ? 'on' : ''}" title="출발(전) → 도착(후)">이동</button>
+        <button role="tab" aria-selected="${!mv}" data-place-mode="stay" data-i="${i}" class="${mv ? '' : 'on'}" title="장소 1곳">장소</button>
+      </div>
+      <div class="ppanel">
+      ${mv
+        ? `<label class="plabel">출발(전)</label>
+           <input data-path="plan.schedule.${i}.from" value="${esc(s.from)}" placeholder="예: 인천" data-place-input>
+           <div class="arrow-down">↓</div>
+           <label class="plabel">도착(후)</label>
+           <input data-path="plan.schedule.${i}.to" value="${esc(s.to)}" placeholder="예: 나고야" data-place-input>`
+        : `<label class="plabel">지역</label>
+           <input data-path="plan.schedule.${i}.area" value="${esc(s.area)}" placeholder="예: 나고야" data-place-input list="areaList">
+           <label class="plabel">건물</label>
+           <input data-path="plan.schedule.${i}.bldg" value="${esc(s.bldg)}" placeholder="예: 강의장, AVEX㈜ 공장" data-place-input list="bldgList">`}
+        <button class="place-done" data-place-done="1">확인</button>
+      </div>
+    </div>`;
+}
+function editorPlan() {
+  return `${keywordCheck('plan')}
+    <h2>세부 일정</h2>
+    <table class="grid-edit"><tr><th style="width:118px">일자</th><th style="width:150px">장소</th><th>주요 내용</th><th style="width:28px"></th></tr>
+      ${doc.plan.schedule.map((s, i) => `<tr>
+        <td><input type="date" data-path="plan.schedule.${i}.date" value="${esc(s.date)}"></td>
+        <td>${placeCell(s, i)}</td>
+        <td><textarea data-path="plan.schedule.${i}.content">${esc(s.content)}</textarea></td>
+        <td><button class="del" data-del="plan.schedule" data-i="${i}">×</button></td></tr>`).join('')}
+    </table>
+    <button data-add="schedule" style="margin-top:6px">+ 일정 추가</button>
+    <datalist id="areaList">${[...new Set(doc.plan.schedule.flatMap(s => [s.area, s.from, s.to]).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>
+    <datalist id="bldgList">${[...new Set(doc.plan.schedule.map(s => s.bldg).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>
+    <p class="note">장소 칸을 누르고 탭에서 <b>이동</b>(출발 → 도착, 예: 인천 → 나고야) 또는 <b>장소</b>(지역 + 건물, 예: 나고야 / 강의장)를 고른 뒤 입력합니다. 두 탭의 입력값은 따로 보관되고, 서류에는 선택한 탭 내용만 나옵니다. Enter = 다음 칸/확인, Esc = 닫기.</p>
+    ${fld('출장 목표 (과제 연계)', 'plan.goal', 'area')}
+    <h2>소요 예산 (과제 사업비)</h2>
+    <p class="note">출장 전 예상 금액입니다. 기안서·출장계획서의 예산표에 들어가고, 실제 사용액은 [집행내역서]에 적습니다. <b>국내</b>는 원, <b>해외</b>는 ${esc(curCode())}로 입력하면 원화가 자동 계산됩니다.</p>
+    <table class="grid-edit"><tr><th style="width:110px">항목</th><th>산출근거</th><th style="width:64px">구분</th><th style="width:84px">${esc(curCode())}</th><th style="width:96px">금액(원)</th><th></th></tr>
+      ${planBudget().map((b, i) => `<tr>
+        <td><input data-path="plan.budget.${i}.item" value="${esc(b.item)}" list="budgetItemList" placeholder="예: 항공료"></td>
+        <td><textarea data-path="plan.budget.${i}.basis" placeholder="예: 1명 × 770,000원">${esc(b.basis)}</textarea></td>
+        <td>${sel(`plan.budget.${i}.region`, b.region || '국내', ['국내', '해외'])}</td>
+        ${b.region === '해외'
+          ? `<td><input type="number" step="any" data-path="plan.budget.${i}.fx" value="${esc(b.fx)}" placeholder="${esc(curCode())}"></td>
+             <td><input type="text" class="auto-krw" data-bkrw-of="${i}" value="${won(budgetKrw(b))}" disabled></td>`
+          : `<td><input type="text" class="off-cell" value="" disabled></td>
+             <td><input type="number" step="1" data-path="plan.budget.${i}.krw" value="${esc(b.krw)}" placeholder="원"></td>`}
+        <td><button class="del" data-del="plan.budget" data-i="${i}">×</button></td></tr>`).join('')}
+      <tr><th colspan="4" style="text-align:right">합계</th><th style="text-align:right" id="planTotal">${won(planTotal())}</th><th></th></tr>
+    </table>
+    <datalist id="budgetItemList">${['항공료', '숙박비', '출장 개인여비', '현지 식비', '현지 석식', '현지 교통비', '회의비', '전시회 입장료', '기타'].map(v => `<option value="${v}">`).join('')}</datalist>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+      <button data-add="budget">+ 예산 항목 추가</button>
+      <button data-add="budgetFromExp" title="집행내역서의 과제분을 항목별로 합쳐 예산표를 다시 만듭니다">집행내역서에서 가져오기</button>
+    </div>
+    ${fld('기대 효과', 'plan.effect', 'area')}`;
+}
+const ITEMS = ['항공료', '숙박비', '출장 개인여비', '조식', '중식', '석식', '간식', '교통비(철도)', '교통비(지하철)', '회의비', '입장권'];
+function sel(path, val, opts) {
+  return `<select data-path="${path}">${opts.concat(opts.includes(val) ? [] : [val]).map(k => `<option ${k === val ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>`;
+}
+function editorExp() {
+  return `<h2>머리글 (사내 양식)</h2>
+    ${fld('1. 출장목적', 'exp.purpose', 'area')}
+    ${fld('2. 출장지역', 'exp.region')}
+    ${fld('4. 출장자', 'exp.travelersText')}
+    <p class="note">출장기간·결제수단·통화·환율(현재 1 ${esc(curCode())} = ${esc(rate() || '?')}원)은 [공통 정보]에서 바꿉니다.</p>
+    <h2>카드·현금 사용 내역</h2>
+    <p class="note"><b>국내</b>는 원(KRW)만, <b>해외</b>는 ${esc(curCode())}만 입력합니다. 해외 행의 원화는 환율로 자동 계산됩니다.</p>
+    <div style="overflow-x:auto">
+    <table class="grid-edit" style="min-width:860px"><tr><th style="width:42px">증빙<br>번호</th><th style="width:118px">이용일자</th><th style="width:84px">카드번호<br>/결제수단</th><th style="width:58px">매출<br>구분</th><th>가맹점명</th><th style="width:78px">${esc(curCode())}</th><th style="width:88px">KRW</th><th style="width:118px">결제일자</th><th>내용</th><th style="width:66px">구분</th><th>비고</th><th></th></tr>
+      ${doc.exp.rows.map((r, i) => `<tr>
+        <td><input data-path="exp.rows.${i}.no" value="${esc(r.no)}"></td>
+        <td><input type="date" data-path="exp.rows.${i}.date" value="${esc(r.date)}"></td>
+        <td>${sel(`exp.rows.${i}.pay`, r.pay || '', payMethods())}</td>
+        <td>${sel(`exp.rows.${i}.region`, r.region, ['국내', '해외'])}</td>
+        <td><textarea data-path="exp.rows.${i}.store">${esc(r.store)}</textarea></td>
+        ${isFx(r)
+          ? `<td><input type="number" step="any" data-path="exp.rows.${i}.fx" value="${esc(r.fx)}" placeholder="${esc(curCode())}"></td>
+             <td><input type="text" class="auto-krw" data-krw-of="${i}" value="${won(krwOf(r))}" disabled title="${esc(curCode())} × 환율 자동 계산"></td>`
+          : `<td><input type="text" class="off-cell" value="" disabled title="국내 사용분은 원(KRW)으로 입력"></td>
+             <td><input type="number" step="1" data-path="exp.rows.${i}.krw" value="${esc(r.krw)}" placeholder="원"></td>`}
+        <td><input type="date" data-path="exp.rows.${i}.payDate" value="${esc(r.payDate)}"></td>
+        <td><textarea data-path="exp.rows.${i}.item" list="itemList">${esc(r.item)}</textarea></td>
+        <td>${sel(`exp.rows.${i}.scope`, r.scope, ['과제', '비과제'])}</td>
+        <td><input data-path="exp.rows.${i}.note" value="${esc(r.note)}"></td>
+        <td><button class="del" data-del="exp.rows" data-i="${i}">×</button></td></tr>`).join('')}
+    </table></div>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+      <button data-add="exp">+ 내역 추가</button>
+      ${ITEMS.map(k => `<button data-add="expItem" data-item="${esc(k)}" class="note">${esc(k)}</button>`).join('')}
+    </div>
+    <p class="note">과제 사업비 집행 합계(원화 환산): <b id="expTotal">${won(total())}</b>원 · 계획서 소요예산 ${won(planTotal())}원 대비 <b id="expDiff">${diffText()}</b>. ‘비과제’ 행은 합계에서 빠집니다.</p>
+    ${fld('하단 ※ 문구', 'exp.note', 'area')}`;
+}
+function editorReport() {
+  return `${keywordCheck('report')}
+    <h2>일자별 수행 내용</h2>
+    <table class="grid-edit"><tr><th style="width:110px">일자</th><th>수행 내용</th><th></th></tr>
+      ${doc.report.daily.map((d, i) => `<tr>
+        <td><input type="date" data-path="report.daily.${i}.date" value="${esc(d.date)}"></td>
+        <td><textarea data-path="report.daily.${i}.content">${esc(d.content)}</textarea></td>
+        <td><button class="del" data-del="report.daily" data-i="${i}">×</button></td></tr>`).join('')}
+    </table>
+    <button data-add="daily" style="margin-top:6px">+ 일자 추가</button>
+    <button data-add="dailyFromPlan" style="margin-top:6px">계획서 일정으로 채우기</button>
+    ${fld('주요 결과', 'report.findings', 'area')}
+    ${fld(KEYWORD + ' 적용 방안', 'report.apply', 'area')}
+    ${fld('향후 계획', 'report.next', 'area')}
+    <p class="note">귀국 후 작성합니다. ‘${KEYWORD}’ 문구를 반드시 포함해 주세요.</p>`;
+}
+/* 멤버 고르기 드롭다운 (멤버가 없으면 설정 탭 안내) */
+function memberPick(id, label) {
+  if (!members.length) return `<span class="note" style="font-weight:400">— [설정] 탭에서 멤버를 등록하면 골라 넣을 수 있습니다</span>`;
+  return `<select id="${id}" class="pick"><option value="">${label} ▾</option>${members.map((m, i) => `<option value="${i}">${esc(memberLabel(m))}</option>`).join('')}</select>`;
+}
+function editorSettings() {
+  return `${membersEditorHtml()}
+    <h2>Supabase 연결</h2>
+    <div class="field"><label>Project URL</label><input id="sbUrl" value="${esc(lsGet('sb_url', DEFAULT_SB_URL))}"></div>
+    <div class="field"><label>Publishable(anon) key</label><input id="sbKey" value="${esc(lsGet('sb_key', DEFAULT_SB_KEY))}"></div>
+    <button id="btnSbSave" class="primary">저장 후 다시 연결</button>
+    <p class="note">이 브라우저에만 저장됩니다.</p>
+    <h2>테이블 생성 SQL</h2>
+    <p class="note">새 Supabase 프로젝트에 연결할 때 한 번만 실행합니다. Supabase 대시보드 → <b>SQL Editor</b> → 아래 내용 붙여넣기 → <b>Run</b>.
+      이미 만든 프로젝트에서 다시 실행해도 데이터는 지워지지 않습니다.</p>
+    <textarea id="sqlText" class="sql-box" readonly spellcheck="false">${esc(SCHEMA_SQL)}</textarea>
+    <div style="margin-top:6px"><button id="btnCopySql">SQL 복사</button></div>
+    <div class="warnbox">개인용 설정입니다: 로그인 없이 바로 쓰는 대신, 이 주소와 키를 아는 사람은 문서를 볼 수 있습니다. 주소를 다른 사람과 공유하지 마세요.</div>
+    <h2>백업</h2>
+    <button id="btnExport">JSON 내보내기</button>
+    <label class="note" style="margin-left:8px">JSON 가져오기 <input type="file" id="fileImport" accept="application/json"></label>
+    <h2>초기화</h2>
+    <button id="btnReset">기본 내용으로 되돌리기</button>`;
+}
+
+const TABS = [
+  { key: 'common', label: '공통 정보', editor: editorCommon, preview: null },
+  { key: 'gian', label: DOCS.gian.label, editor: editorGian, preview: 'gian' },
+  { key: 'plan', label: DOCS.plan.label, editor: editorPlan, preview: 'plan' },
+  { key: 'exp', label: DOCS.exp.label, editor: editorExp, preview: 'exp' },
+  { key: 'report', label: DOCS.report.label, editor: editorReport, preview: 'report' },
+  { key: 'photos', label: DOCS.photos.label, editor: editorPhotos, preview: 'photos' },
+  { key: 'settings', label: '설정', editor: editorSettings, preview: null }
+];
+
+let showPreview = lsGet('show_preview', '1') === '1';
+function renderTabs() {
+  const t = TABS.find(x => x.key === currentTab);
+  $('#tabs').innerHTML = TABS.map(x => `<button data-tab="${x.key}" class="${x.key === currentTab ? 'on' : ''}">${x.label}</button>`).join('')
+    + (t && t.preview ? `<button id="btnPrintOne" class="print-one">이 문서 인쇄 / PDF 저장</button>
+        <button id="btnPv" class="pv-toggle" title="미리보기를 숨기면 입력칸이 넓어집니다">${showPreview ? '미리보기 접기' : '미리보기 펼치기'}</button>` : '');
+}
+function renderPreview() {
+  const t = TABS.find(x => x.key === currentTab);
+  const pv = $('#preview');
+  if (!pv || !t.preview) return;
+  pv.innerHTML = DOCS[t.preview].render() || '<p class="note" style="padding:16px">보고서에 넣을 사진이 없습니다. 사진 카드의 [보고서에 넣기]를 체크하면 결과보고서 뒤에 사진 쪽(6장/쪽)이 붙습니다.</p>';
+}
+function renderAll() {
+  renderTabs();
+  const t = TABS.find(x => x.key === currentTab);
+  if (!t.preview) {
+    /* 공통 정보·설정: 입력만 (미리보기는 각 서류 탭에서) */
+    $('#main').innerHTML = `<section class="editor" style="max-width:760px">${t.editor()}</section>`;
+    return;
+  }
+  $('#main').innerHTML = `<div class="layout${showPreview ? '' : ' no-preview'}">
+      <section class="editor">${t.editor()}</section>
+      <section>
+        <div class="preview-wrap" id="preview"></div>
+      </section>
+    </div>`;
+  renderPreview();
+  document.querySelectorAll('.grid-edit textarea').forEach(t => { t.classList.add('auto'); autosize(t); });
+}
+/* 표 안의 글상자는 내용 길이에 맞춰 높이가 늘어남 */
+function autosize(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
+/* 4종 전체 인쇄: 화면과 별도의 인쇄 영역에 네 장을 만들어 인쇄 */
+function printAll() {
+  let area = $('#printAll');
+  if (!area) { area = document.createElement('div'); area.id = 'printAll'; document.body.appendChild(area); }
+  area.innerHTML = Object.keys(DOCS).map(k => DOCS[k].render()).join('');
+  document.body.classList.add('printing-all');
+  const done = () => { document.body.classList.remove('printing-all'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  window.print();
+}
+
+/* =====================================================================
+   사진등록
+   - 촬영: 화면 안 카메라(16:9, 전/후면 전환). 카메라를 못 쓰는 환경이면 휴대폰 기본 카메라로 대체
+   - 압축: 가운데 16:9로 자르고 JPEG 50KB 이하
+   - 위치: 촬영은 GPS, 갤러리는 사진 속 EXIF 위치·촬영시각
+   - 코멘트: 지우기 전까지 다음 사진에도 그대로 붙음(입력하면 방금 찍은 사진에도 반영)
+   ===================================================================== */
+const PHOTO_MAX = 50 * 1024;
+let photoSel = null;                                   // 코멘트 상자와 연결된(방금 찍은) 사진 id
+const geo = { fix: null, err: '', watching: false };
+const cam = { stream: null, facing: 'environment', busy: false };
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function isoLocal(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; }
+function fmtShot(iso) { if (!iso) return ''; const [d, t] = iso.split('T'); const [, m, dd] = d.split('-'); return `${m}.${dd} ${(t || '').slice(0, 5)}`; }
+function photos() { if (!Array.isArray(doc.photos)) doc.photos = []; return doc.photos; }
+function stickyComment() { return lsGet('photo_comment', ''); }
+function dayPlace(p) { const s = doc.plan.schedule.find(x => x.date === (p.takenAt || '').slice(0, 10)); return s ? placeText(s) : ''; }
+function locText(p) { return p.lat != null ? `${(+p.lat).toFixed(5)}, ${(+p.lng).toFixed(5)}` : ''; }
+
+/* ---------- 위치 ---------- */
+function startGeo() {
+  if (geo.watching) return;
+  if (!navigator.geolocation) { geo.err = '이 브라우저는 위치 기능을 지원하지 않습니다'; return; }
+  geo.watching = true;
+  navigator.geolocation.watchPosition(pos => {
+    geo.fix = { lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6), acc: Math.round(pos.coords.accuracy), t: Date.now() };
+    geo.err = ''; updateGeoChip(); fillPendingLocations();
+  }, e => { geo.err = e.code === 1 ? '위치 권한이 거부됨 (브라우저 주소창에서 허용)' : '위치를 찾지 못함'; updateGeoChip(); },
+  { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+}
+function geoChipHtml() {
+  const f = geo.fix;
+  const fresh = f && Date.now() - f.t < 120000;
+  const cls = fresh ? 'ok' : (geo.err ? 'err' : '');
+  const txt = fresh ? `위치 수신 중 ±${f.acc}m` : (geo.err || '위치 찾는 중…');
+  return `<span class="geo-chip status ${cls}" data-geo-chip>${esc(txt)}</span>`;
+}
+function updateGeoChip() { document.querySelectorAll('[data-geo-chip]').forEach(el => { el.outerHTML = geoChipHtml(); }); }
+/* 막 찍은 사진에 위치를 붙임. 아직 위치가 없으면 '대기'로 두었다가 2분 안에 잡히면 채움 */
+function applyGeo(p) {
+  const f = geo.fix;
+  if (f && Date.now() - f.t < 120000) Object.assign(p, { lat: f.lat, lng: f.lng, acc: f.acc, locSrc: 'gps' });
+  else { p.locSrc = 'pending'; p.pendingAt = Date.now(); }
+}
+function fillPendingLocations() {
+  let changed = false;
+  photos().forEach(p => {
+    if (p.locSrc === 'pending' && Date.now() - (p.pendingAt || 0) < 120000 && geo.fix) {
+      Object.assign(p, { lat: geo.fix.lat, lng: geo.fix.lng, acc: geo.fix.acc, locSrc: 'gps' }); delete p.pendingAt; changed = true;
+    }
+  });
+  if (changed) { markDirty(); if (currentTab === 'photos') renderAll(); }
+}
+
+/* ---------- 압축: 가운데 16:9 자르기 → JPEG 50KB 이하 ---------- */
+function canvasToBlob(c, q) { return new Promise(r => c.toBlob(r, 'image/jpeg', q)); }
+function blobToDataURL(b) { return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); }); }
+function loadImage(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+async function compress169(src, sw, sh) {
+  let cw = sw, ch = Math.round(sw * 9 / 16);
+  if (ch > sh) { ch = sh; cw = Math.round(sh * 16 / 9); }
+  const cx = Math.round((sw - cw) / 2), cy = Math.round((sh - ch) / 2);
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  let best = null;
+  for (const W of [960, 848, 720, 640, 560, 480, 400, 320]) {
+    const w = Math.min(W, cw), h = Math.round(w * 9 / 16);
+    c.width = w; c.height = h; g.imageSmoothingQuality = 'high';
+    g.drawImage(src, cx, cy, cw, ch, 0, 0, w, h);
+    for (const q of [0.7, 0.58, 0.46, 0.36]) {
+      const b = await canvasToBlob(c, q);
+      best = { blob: b, w, h };
+      if (b.size <= PHOTO_MAX) return best;
+    }
+  }
+  return best;
+}
+
+/* ---------- EXIF: 촬영시각 + GPS (JPEG) ---------- */
+function readExif(buf) {
+  const v = new DataView(buf);
+  if (v.byteLength < 4 || v.getUint16(0) !== 0xFFD8) return null;
+  let off = 2;
+  while (off + 10 < v.byteLength) {
+    const mk = v.getUint16(off), size = v.getUint16(off + 2);
+    if ((mk & 0xFF00) !== 0xFF00) break;
+    if (mk === 0xFFE1 && v.getUint32(off + 4) === 0x45786966) return parseTiff(v, off + 10);
+    if (mk === 0xFFDA) break;
+    off += 2 + size;
+  }
+  return null;
+}
+function parseTiff(v, t) {
+  const le = v.getUint16(t) === 0x4949;
+  const u16 = o => v.getUint16(t + o, le), u32 = o => v.getUint32(t + o, le);
+  const ifd = o => { const n = u16(o), tags = {}; for (let i = 0; i < n; i++) { const e = o + 2 + i * 12; tags[u16(e)] = { count: u32(e + 4), at: e + 8 }; } return tags; };
+  const str = tg => { const o = tg.count > 4 ? u32(tg.at) : tg.at; let s = ''; for (let i = 0; i < tg.count - 1; i++) s += String.fromCharCode(v.getUint8(t + o + i)); return s; };
+  const rats = tg => { const o = u32(tg.at), a = []; for (let i = 0; i < tg.count; i++) a.push(u32(o + i * 8) / (u32(o + i * 8 + 4) || 1)); return a; };
+  const out = {};
+  const ifd0 = ifd(u32(4));
+  if (ifd0[0x8769]) { const ex = ifd(u32(ifd0[0x8769].at)); if (ex[0x9003]) out.dateTime = str(ex[0x9003]); }
+  if (!out.dateTime && ifd0[0x0132]) out.dateTime = str(ifd0[0x0132]);
+  if (out.dateTime) { const m = out.dateTime.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/); out.dateTime = m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}` : null; }
+  if (ifd0[0x8825]) {
+    const gp = ifd(u32(ifd0[0x8825].at));
+    if (gp[2] && gp[4]) {
+      const dms = a => a[0] + (a[1] || 0) / 60 + (a[2] || 0) / 3600;
+      let lat = dms(rats(gp[2])), lng = dms(rats(gp[4]));
+      if (gp[1] && String.fromCharCode(v.getUint8(t + gp[1].at)) === 'S') lat = -lat;
+      if (gp[3] && String.fromCharCode(v.getUint8(t + gp[3].at)) === 'W') lng = -lng;
+      if (isFinite(lat) && isFinite(lng) && (lat || lng)) { out.lat = +lat.toFixed(6); out.lng = +lng.toFixed(6); }
+    }
+  }
+  return out;
+}
+
+/* ---------- 사진 추가 ---------- */
+async function makePhoto(r, source) {
+  const p = {
+    id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    dataUrl: await blobToDataURL(r.blob), w: r.w, h: r.h, kb: Math.round(r.blob.size / 102.4) / 10,
+    takenAt: isoLocal(new Date()), lat: null, lng: null, acc: null, locSrc: 'none',
+    comment: stickyComment(), source, include: true
+  };
+  return p;
+}
+function addPhotos(list) {
+  list.forEach(p => photos().push(p));
+  const last = list[list.length - 1];
+  if (last && last.source !== 'gallery') photoSel = last.id;   // 방금 찍은 사진은 코멘트 상자와 연결
+  markDirty();
+}
+/* 파일(갤러리·휴대폰 기본 카메라) → 16:9·50KB 사진 */
+async function processFile(file, source) {
+  const buf = await file.arrayBuffer();
+  let ex = null; try { ex = readExif(buf); } catch (e) { ex = null; }
+  const url = URL.createObjectURL(file);
+  let img;
+  try { img = await loadImage(url); }
+  catch (e) { URL.revokeObjectURL(url); throw new Error(`${file.name}: 열 수 없는 형식입니다 (HEIC는 JPEG로 저장 후 추가)`); }
+  const r = await compress169(img, img.naturalWidth, img.naturalHeight);
+  URL.revokeObjectURL(url);
+  const p = await makePhoto(r, source);
+  if (ex && ex.dateTime) p.takenAt = ex.dateTime;
+  else if (source === 'gallery' && file.lastModified) p.takenAt = isoLocal(new Date(file.lastModified));
+  if (ex && ex.lat != null) Object.assign(p, { lat: ex.lat, lng: ex.lng, acc: null, locSrc: 'exif' });
+  else if (source !== 'gallery') applyGeo(p);               // 방금 찍은 사진 → 현재 GPS
+  p.fileName = file.name;
+  return p;
+}
+async function handleFiles(files, source) {
+  const arr = [...files]; if (!arr.length) return;
+  const added = [], fails = [];
+  for (let i = 0; i < arr.length; i++) {
+    setStatus(`사진 처리 중 ${i + 1}/${arr.length}…`, '');
+    try { added.push(await processFile(arr[i], source)); } catch (e) { fails.push(e.message); }
+  }
+  addPhotos(added);
+  const noLoc = added.filter(p => p.lat == null && p.locSrc !== 'pending').length;
+  setStatus(`사진 ${added.length}장 추가${noLoc ? ` · 위치정보 없는 사진 ${noLoc}장` : ''}${fails.length ? ` · 실패 ${fails.length}장` : ''}`, fails.length ? 'err' : 'ok');
+  if (fails.length) console.warn(fails.join('\n'));
+  if (currentTab === 'photos') renderAll();
+}
+
+/* ---------- 화면 안 카메라 (16:9, 전/후면) ---------- */
+function canLiveCamera() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext); }
+async function openCamera(facing) {
+  startGeo();
+  cam.facing = facing;
+  if (!canLiveCamera()) { $(facing === 'user' ? '#fileCamUser' : '#fileCamEnv').click(); return; }   // 휴대폰 기본 카메라로 대체
+  let ov = $('#camOverlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'camOverlay'; ov.className = 'cam-overlay'; document.body.appendChild(ov); }
+  ov.innerHTML = `
+    <div class="cam-frame ${facing === 'user' ? 'mirror' : ''}"><video id="camVideo" playsinline muted autoplay></video><div class="cam-flash" id="camFlash"></div>
+      <div class="cam-msg" id="camMsg">카메라 여는 중…</div></div>
+    <div class="cam-bar">
+      <button data-cam-close="1">닫기</button>
+      <button id="camShutter" class="shutter" title="촬영 (Space)" aria-label="촬영"></button>
+      <button data-cam-flip="1">${facing === 'user' ? '후면' : '셀카'}</button>
+    </div>
+    <div class="cam-info">${geoChipHtml()} <span id="camCount" class="status">이번에 ${0}장</span></div>
+    ${stickyBoxHtml(true)}
+    <div class="cam-strip" id="camStrip"></div>`;
+  ov.dataset.count = '0';
+  stopStream();
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 }, aspectRatio: { ideal: 16 / 9 } } });
+    if (!$('#camOverlay')) { st.getTracks().forEach(t => t.stop()); return; }   // 여는 중에 닫았으면 카메라 끔
+    cam.stream = st;
+    const v = $('#camVideo'); v.srcObject = cam.stream; await v.play().catch(() => {});
+    const m = $('#camMsg'); if (m) m.textContent = '';
+  } catch (e) {
+    closeCamera();
+    setStatus('카메라를 열 수 없어 기본 카메라 앱으로 엽니다: ' + (e.message || e.name), 'err');
+    $(facing === 'user' ? '#fileCamUser' : '#fileCamEnv').click();
+  }
+}
+function stopStream() { if (cam.stream) { cam.stream.getTracks().forEach(t => t.stop()); cam.stream = null; } }
+function closeCamera() { stopStream(); const ov = $('#camOverlay'); if (ov) ov.remove(); if (currentTab === 'photos') renderAll(); }
+/* 전/후면 전환: 화면은 그대로 두고 카메라만 바꿈 (이번 촬영 장수·썸네일 유지) */
+async function flipCamera() {
+  const ov = $('#camOverlay'); if (!ov) return;
+  cam.facing = cam.facing === 'user' ? 'environment' : 'user';
+  ov.querySelector('.cam-frame').classList.toggle('mirror', cam.facing === 'user');
+  ov.querySelector('[data-cam-flip]').textContent = cam.facing === 'user' ? '후면' : '셀카';
+  const msg = t => { const m = $('#camMsg'); if (m) m.textContent = t; };
+  msg('카메라 전환 중…');
+  stopStream();
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: cam.facing }, width: { ideal: 1920 }, height: { ideal: 1080 }, aspectRatio: { ideal: 16 / 9 } } });
+    if (!$('#camOverlay')) { st.getTracks().forEach(t => t.stop()); return; }   // 전환 중에 닫았으면 카메라 끔
+    cam.stream = st;
+    const v = $('#camVideo'); v.srcObject = cam.stream; await v.play().catch(() => {});
+    msg('');
+  } catch (e) { msg('이 기기에서는 카메라를 전환할 수 없습니다'); }
+}
+/* 화면이 아직 안 나왔으면 최대 1.5초 기다렸다가 촬영 (누른 순간을 놓치지 않게) */
+async function waitVideo(v) { for (let i = 0; i < 30 && v && !v.videoWidth; i++) await new Promise(r => setTimeout(r, 50)); return v && v.videoWidth; }
+async function shoot() {
+  if (cam.busy) return;
+  const v = $('#camVideo'); if (!v) return;
+  cam.busy = true;
+  const source = cam.facing === 'user' ? 'selfie' : 'camera';       // 누른 순간의 카메라 방향
+  try {
+    if (!await waitVideo(v)) { const m = $('#camMsg'); if (m) m.textContent = '카메라 화면이 아직 없습니다. 다시 눌러 주세요'; return; }
+    const fl = $('#camFlash'); if (fl) { fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go'); }
+    const r = await compress169(v, v.videoWidth, v.videoHeight);
+    const p = await makePhoto(r, source);
+    applyGeo(p); addPhotos([p]);
+    const ov = $('#camOverlay'); if (!ov) { if (currentTab === 'photos') renderAll(); return; }   // 그새 닫았으면 저장만
+    ov.dataset.count = String(+ov.dataset.count + 1);
+    $('#camCount').textContent = `이번에 ${ov.dataset.count}장 · 방금 ${p.kb}KB`;
+    const s = $('#camStrip'); s.insertAdjacentHTML('afterbegin', `<img src="${p.dataUrl}" alt="">`);
+    while (s.children.length > 8) s.lastChild.remove();
+    const lbl = ov.querySelector('.sticky-box label .note');
+    if (lbl) lbl.textContent = `— 지우기 전까지 다음 사진에도 그대로 붙습니다 · 입력하면 방금 찍은 사진(#${photos().length})에도 반영`;
+    const box = ov.querySelector('.sticky-c'); if (box && !matchMedia('(pointer:coarse)').matches) box.focus();
+  } finally { cam.busy = false; }
+}
+
+/* ---------- 유지형 코멘트 상자 ---------- */
+function recentComments() { return [...new Set(photos().map(p => (p.comment || '').trim()).filter(Boolean).reverse())].slice(0, 6); }
+function stickyBoxHtml(inCam) {
+  const sel = photos().findIndex(p => p.id === photoSel);
+  return `<div class="sticky-box${inCam ? ' in-cam' : ''}">
+    <label>코멘트 <span class="note">— 지우기 전까지 다음 사진에도 그대로 붙습니다${sel > -1 ? ` · 입력하면 방금 찍은 사진(#${sel + 1})에도 반영` : ''}</span></label>
+    <div class="sticky-row"><textarea class="sticky-c" rows="2" placeholder="예: AVEX 프레스 라인 – 자동 취출 장치">${esc(stickyComment())}</textarea>
+      <button data-sticky-clear="1">지우기</button></div>
+    ${recentComments().length ? `<div class="chips">${recentComments().map(c => `<button class="chip" data-chip="${esc(c)}">${esc(c.length > 18 ? c.slice(0, 18) + '…' : c)}</button>`).join('')}</div>` : ''}
+  </div>`;
+}
+function setSticky(v, from) {
+  lsSet('photo_comment', v);
+  document.querySelectorAll('.sticky-c').forEach(t => { if (t !== from) t.value = v; });
+  const p = photos().find(x => x.id === photoSel);
+  if (p) {
+    p.comment = v; markDirty();
+    const card = document.querySelector(`textarea[data-path="photos.${photos().indexOf(p)}.comment"]`); if (card) card.value = v;
+    renderPreviewSoon();
+  }
+}
+
+/* ---------- 다운로드 ---------- */
+function photoFileName(p, i) {
+  const t = (p.takenAt || '').replace(/[-:]/g, '').replace('T', '_').slice(0, 13);
+  const c = (p.comment || '').replace(/[\\/:*?"<>|\r\n\t]+/g, ' ').trim().slice(0, 30);
+  return `${pad2(i + 1)}_${t}${c ? '_' + c : ''}.jpg`;
+}
+function dataUrlBytes(u) { const b = atob(u.split(',')[1]); const a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+function saveBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+/* 압축 없는(STORE) ZIP — JPEG는 이미 압축돼 있어 충분. 한글 파일명(UTF-8 플래그) */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(a) { let c = 0xFFFFFFFF; for (let i = 0; i < a.length; i++) c = CRC_T[(c ^ a[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const d = new Date(), dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)), dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate());
+  files.forEach(f => {
+    const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+    h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, dt, true); c.setUint16(14, dd, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+    c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  });
+  const cdSize = central.reduce((s, a) => s + a.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cdSize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+function downloadAllPhotos() {
+  const ps = photos(); if (!ps.length) { setStatus('내려받을 사진이 없습니다', 'err'); return; }
+  const enc = new TextEncoder();
+  const csvRows = [['번호', '파일명', '촬영시각', '일정 장소', '위도', '경도', '위치출처', '코멘트', '보고서포함']];
+  const files = ps.map((p, i) => { const name = photoFileName(p, i); csvRows.push([i + 1, name, (p.takenAt || '').replace('T', ' '), dayPlace(p), p.lat ?? '', p.lng ?? '', p.locSrc || '', p.comment || '', p.include !== false ? 'O' : 'X']); return { name, data: dataUrlBytes(p.dataUrl) }; });
+  const csv = '﻿' + csvRows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  files.push({ name: '사진목록.csv', data: enc.encode(csv) });
+  const base = (doc.title || '출장사진').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+  saveBlob(makeZip(files), `${base}_사진${ps.length}장.zip`);
+  setStatus(`사진 ${ps.length}장 + 목록(csv)을 ZIP으로 내려받았습니다`, 'ok');
+}
+
+/* ---------- 사진 탭 화면 ---------- */
+function photoCard(p, i) {
+  const loc = p.lat != null
+    ? `<a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener">${esc(locText(p))}</a> <span class="note">(${p.locSrc === 'exif' ? '사진 정보' : p.locSrc === 'manual' ? '직접 지정' : 'GPS'}${p.acc ? ` ±${p.acc}m` : ''})</span>`
+    : (p.locSrc === 'pending' ? '<span class="note">위치 찾는 중…</span>' : `<span class="note">위치 없음</span> <button class="mini" data-photo-here="${i}">현재 위치로</button>`);
+  return `<div class="photo-card${p.id === photoSel ? ' sel' : ''}${p.include === false ? ' off' : ''}">
+    <img src="${p.dataUrl}" alt="사진 ${i + 1}">
+    <div class="pc-body">
+      <div class="pc-head"><b>#${i + 1}</b> ${esc(fmtShot(p.takenAt))} <span class="note">${esc(dayPlace(p))}</span>
+        <span class="pc-tag">${p.source === 'selfie' ? '셀카' : p.source === 'gallery' ? '갤러리' : '촬영'} · ${p.kb}KB</span></div>
+      <div class="pc-loc">${loc}</div>
+      <textarea data-path="photos.${i}.comment" placeholder="코멘트">${esc(p.comment)}</textarea>
+      <div class="pc-tools">
+        <label><input type="checkbox" data-photo-include="${i}" ${p.include !== false ? 'checked' : ''}> 보고서에 넣기</label>
+        <span style="flex:1"></span>
+        <button class="mini" data-photo-dl="${i}" title="이 사진 내려받기">다운로드</button>
+        <button class="mini" data-photo-move="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} title="위로">▲</button>
+        <button class="mini" data-photo-move="${i}" data-dir="1" ${i === photos().length - 1 ? 'disabled' : ''} title="아래로">▼</button>
+        <button class="mini del" data-photo-del="${i}" title="삭제">삭제</button>
+      </div>
+    </div>
+  </div>`;
+}
+function editorPhotos() {
+  startGeo();
+  const ps = photos();
+  const inc = ps.filter(p => p.include !== false).length;
+  const totalKb = Math.round(ps.reduce((s, p) => s + (p.kb || 0), 0));
+  return `<section class="drop-hero" id="dropHero">
+      <div class="drop-panel">
+        <div class="drop-copy">
+          <h3><span class="t-desk">사진을 끌어다 놓으세요</span><span class="t-mob">현장 사진 등록</span></h3>
+          <p>16:9로 자르고 50KB 이하로 줄여 위치·시간과 함께 등록합니다</p>
+          <svg class="drop-icon" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M12 16V4m0 0l-4.5 4.5M12 4l4.5 4.5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="drop-when">놓으면 추가됩니다</div>
+          <div class="photo-actions">
+            <button class="primary big" data-cam="environment">촬영</button>
+            <button class="big" data-cam="user">셀카</button>
+            <button class="big" id="btnGallery">갤러리에서 추가</button>
+          </div>
+          <div class="drop-geo">${geoChipHtml()}</div>
+        </div>
+      </div>
+    </section>
+    <input type="file" id="fileGallery" accept="image/*" multiple hidden>
+    <input type="file" id="fileCamEnv" accept="image/*" capture="environment" hidden>
+    <input type="file" id="fileCamUser" accept="image/*" capture="user" hidden>
+    ${stickyBoxHtml(false)}
+    <p class="note">사진은 가운데를 16:9로 잘라 장당 50KB 이하로 줄입니다. 촬영 사진은 GPS 위치를, 갤러리 사진은 사진에 저장된 위치·촬영시각을 자동으로 넣습니다.
+      ${canLiveCamera() ? '촬영 화면에서 Space = 촬영, Esc = 닫기.' : '<b>이 환경에서는 화면 안 카메라를 쓸 수 없어 휴대폰 기본 카메라가 열립니다</b>(https 주소에서 열면 화면 안 카메라 사용 가능).'}</p>
+    <h2>등록된 사진 ${ps.length}장 <span class="note">보고서 포함 ${inc}장 · 합계 ${totalKb}KB</span></h2>
+    <div class="photo-tools">
+      <button data-photo-sort="1" ${ps.length < 2 ? 'disabled' : ''}>촬영 시간순 정렬</button>
+      <button data-photo-dlall="1" ${ps.length ? '' : 'disabled'}>전체 다운로드 (ZIP)</button>
+    </div>
+    <div class="photo-list">${ps.map(photoCard).join('') || '<p class="note">아직 사진이 없습니다. [촬영] 또는 [갤러리에서 추가]를 누르세요.</p>'}</div>`;
+}
+/* 결과보고서 뒤에 붙는 사진 쪽: 한 쪽에 6장 (2열 × 3행) */
+function renderPhotos() {
+  const ps = photos().filter(p => p.include !== false);
+  if (!ps.length) return '';
+  const pages = []; for (let i = 0; i < ps.length; i += 6) pages.push(ps.slice(i, i + 6));
+  return pages.map((g, pi) => `<div class="page photo-page">
+    <div class="title" style="font-size:15pt;letter-spacing:2px;text-align:left">출장결과보고서 – 현장 사진 <span style="font-size:10pt;font-weight:400">(${pi + 1}/${pages.length})</span></div>
+    <div style="font-size:9pt;margin:1mm 0 3mm">${esc(doc.common.dest)} · ${esc(fmtDate(doc.common.start))} ~ ${esc(fmtDate(doc.common.end))} · ${esc(travelersText())}</div>
+    <div class="photo-grid">${g.map((p, k) => `<figure><img src="${p.dataUrl}" alt="">
+      <figcaption><b>${pi * 6 + k + 1}.</b> ${esc(fmtShot(p.takenAt))}${dayPlace(p) ? ' · ' + esc(dayPlace(p)) : ''}${p.lat != null ? ` · 위치 ${esc(locText(p))}` : ''}${p.comment ? '\n' + hl(p.comment) : ''}</figcaption></figure>`).join('')}</div>
+    ${foot()}
+  </div>`).join('');
+}
+/* ---------- 끌어다 놓기: 탐색기에서 사진 파일을 화면에 놓으면 갤러리 사진처럼 추가 ----------
+   다른 탭에서 놓아도 [5. 사진등록] 탭으로 옮겨 추가. 사진이 아닌 파일은 무시 */
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+function setDragOn(on) { const h = $('#dropHero'); if (h) h.classList.toggle('drag-on', on); }
+document.addEventListener('dragenter', e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth++;
+  if (currentTab !== 'photos') { currentTab = 'photos'; editingPlace = null; renderAll(); }
+  setDragOn(true);
+});
+document.addEventListener('dragover', e => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+document.addEventListener('dragleave', e => { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) setDragOn(false); });
+document.addEventListener('drop', e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; setDragOn(false);
+  const files = [...e.dataTransfer.files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));
+  if (!files.length) { setStatus('사진 파일만 놓을 수 있습니다', 'err'); return; }
+  startGeo(); handleFiles(files, 'gallery');
+});
+let pvTimer = null;
+function renderPreviewSoon() { clearTimeout(pvTimer); pvTimer = setTimeout(renderPreview, 250); }
+
+/* ---------------- 이벤트 ---------------- */
+let dirty = false;
+const DRAFT_KEY = 'trip_doc_draft_v2';
+function markDirty() {
+  dirty = true;
+  if (!lsSet(DRAFT_KEY, JSON.stringify({ id: currentId, doc })))
+    setStatus('브라우저 임시 저장 공간이 부족합니다(사진이 많음) — [저장]을 눌러 Supabase에 저장하세요', 'err');
+}
+/* 이전 버전(비목/금액 칸)으로 저장된 문서를 새 사내 양식 칸으로 옮김 */
+function migrate(d) {
+  const base = defaultDoc();
+  const out = Object.assign(base, d);
+  out.common = Object.assign(defaultDoc().common, d && d.common);
+  out.exp = Object.assign(defaultDoc().exp, d && d.exp);
+  /* 환율: 예전엔 집행내역서(exp.rate) → 공통(common.rate, 엔 고정) → 지금은 통화별(common.rates) */
+  const oldRate = (d && d.common && d.common.rate != null) ? d.common.rate : (d && d.exp && d.exp.rate != null ? d.exp.rate : null);
+  if (!(d && d.common && d.common.rates)) {
+    out.common.currency = (d && d.common && d.common.currency) || detectCurrency(out.common.dest) || 'JPY';
+    out.common.rates = {};
+    if (oldRate != null) out.common.rates.JPY = oldRate;           // 예전 환율은 엔화 기준이었음
+    else out.common.rates = defaultDoc().common.rates;
+  }
+  delete out.common.rate; delete out.exp.rate;
+  /* 결제수단: 예전 카드번호 1개 → 목록. 행에서 쓰던 결제수단도 빠짐없이 넣음 */
+  if (!(d && d.common && Array.isArray(d.common.payMethods))) {
+    const list = [];
+    const add = m => { if (m && !list.includes(m)) list.push(m); };
+    add(d && d.common && d.common.cardNo);
+    defaultDoc().common.payMethods.forEach(add);   // 기본 법인카드·현금·계좌이체는 항상 포함
+    ((d && d.exp && d.exp.rows) || []).forEach(r => add(r.pay));
+    out.common.payMethods = list;
+  }
+  delete out.common.cardNo;
+  out.photos = (d && Array.isArray(d.photos)) ? d.photos : [];
+  /* 이전 일정(장소 한 칸) → 이동/장소 구분. "A → B" 형태면 이동으로 나눔 */
+  out.plan = Object.assign(defaultDoc().plan, d && d.plan);
+  out.plan.schedule = (out.plan.schedule || []).map(s => {
+    /* 장소 한 칸(place) → 지역/건물. "나고야 강의장"처럼 띄어쓰기가 있으면 첫 단어를 지역으로 */
+    const splitPlace = p => {
+      p = String(p || '').trim();
+      const m = p.match(/^(\S+)\s+(.+)$/);
+      return (m && !/[\/·,]/.test(p)) ? { area: m[1], bldg: m[2] } : { area: '', bldg: p };
+    };
+    if (s.mode) {
+      if (s.area == null && s.bldg == null) Object.assign(s, splitPlace(s.place));
+      delete s.place;
+      return s;
+    }
+    const parts = String(s.place || '').split(/\s*(?:→|->|>)\s*/);
+    return parts.length === 2 && parts[0] && parts[1]
+      ? { date: s.date, mode: 'move', from: parts[0], to: parts[1], area: '', bldg: '', content: s.content || '' }
+      : Object.assign({ date: s.date, mode: 'stay', from: '', to: '', content: s.content || '' }, splitPlace(s.place));
+  });
+  out.exp.rows = (out.exp.rows || []).map((r, i) => ('amount' in r) ? { no: i + 1, date: r.date, pay: '', region: '국내', store: r.payee || '', fx: '', krw: r.amount, payDate: '', item: r.item || r.cat || '', scope: '과제', note: r.proof || '' } : r);
+  /* 외화 칸 이름 jpy → fx */
+  out.exp.rows.forEach(r => { if ('jpy' in r) { if (r.fx == null || r.fx === '') r.fx = r.jpy; delete r.jpy; } if (r.fx == null) r.fx = ''; });
+  /* 소요예산이 없던 문서 → 예전처럼 집행내역서 기준 금액으로 채움 */
+  if (!(d && d.plan && Array.isArray(d.plan.budget))) {
+    out.plan.budget = budgetFromExp(out.exp.rows, n0((out.common.rates || {})[out.common.currency || 'JPY']));
+  }
+  return out;
+}
+
+document.addEventListener('input', e => {
+  const p = e.target.getAttribute && e.target.getAttribute('data-path');
+  if (!p) return;
+  if (e.target.classList.contains('auto')) autosize(e.target);
+  let v = e.target.value;
+  if (e.target.getAttribute('data-num')) v = Number(v) || 0;
+  /* 결제수단 이름 변경 → 그 수단을 쓰던 집행내역 행도 같이 변경. 카드번호를 길게 넣으면 끝 4자리만 남김 */
+  const pm = p.match(/^common\.payMethods\.(\d+)$/);
+  if (pm) {
+    if (/^[\d\s-]{5,}$/.test(v)) { v = v.replace(/\D/g, '').slice(-4); e.target.value = v; }
+    const old = doc.common.payMethods[Number(pm[1])];
+    doc.exp.rows.forEach(r => { if (old && r.pay === old) r.pay = v; });
+  }
+  setPath(p, v);
+  markDirty();
+  /* 출장지 → 통화 자동 전환 */
+  if (p === 'common.dest') {
+    const cur = detectCurrency(v);
+    if (cur && cur !== curCode()) { doc.common.currency = cur; curAutoMsg = `출장지 기준으로 통화를 ${cur}(으)로 바꿨습니다.`; syncCurrencyFields(); }
+  }
+  if (p.startsWith('common.rates.')) { const n = $('#curNote'); if (n) n.innerHTML = curNoteHtml(); }
+  /* 해외 행 외화 입력 → 원화 칸 즉시 갱신 */
+  const fm = p.match(/^exp\.rows\.(\d+)\.fx$/);
+  if (fm) { const k = document.querySelector(`[data-krw-of="${fm[1]}"]`); if (k) k.value = won(krwOf(doc.exp.rows[Number(fm[1])])); }
+  const bm = p.match(/^plan\.budget\.(\d+)\.fx$/);
+  if (bm) { const k = document.querySelector(`[data-bkrw-of="${bm[1]}"]`); if (k) k.value = won(budgetKrw(doc.plan.budget[Number(bm[1])])); }
+  if (p.startsWith('plan.budget.')) { const pt = $('#planTotal'); if (pt) pt.textContent = won(planTotal()); }
+  const dEl = $('#expDiff'); if (dEl) dEl.textContent = diffText();
+  if (currentTab === 'photos') renderPreviewSoon(); else renderPreview();   // 사진 쪽은 이미지가 많아 잠깐 모아서 다시 그림
+  const tEl = $('#expTotal'); if (tEl) tEl.textContent = won(total());
+  const kb = $('.editor .okbox, .editor .warnbox');
+  if (kb && DOCS[currentTab]) kb.outerHTML = keywordCheck(currentTab);
+});
+/* 사진: 유지형 코멘트 상자 입력 */
+document.addEventListener('input', e => {
+  if (e.target.classList && e.target.classList.contains('sticky-c')) setSticky(e.target.value, e.target);
+});
+/* 사진: 촬영 화면 단축키 (Space = 촬영, Esc = 닫기). 코멘트 입력 중에는 Space가 글자로 들어감 */
+document.addEventListener('keydown', e => {
+  if (!$('#camOverlay')) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeCamera(); return; }
+  if ((e.key === ' ' || e.code === 'Space') && !/TEXTAREA|INPUT/.test(e.target.tagName)) { e.preventDefault(); shoot(); }
+});
+function openPlace(i) {
+  editingPlace = i; renderAll();
+  const f = document.querySelector('.place-editor input[data-place-input]');
+  if (f) { f.focus(); f.select(); }
+}
+function closePlace() { editingPlace = null; renderAll(); }
+document.addEventListener('keydown', e => {
+  if (editingPlace === null || !e.target.closest || !e.target.closest('.place-editor')) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    /* 이동 모드에서 출발칸 Enter → 도착칸으로 */
+    const ins = [...document.querySelectorAll('.place-editor input[data-place-input]')];
+    const k = ins.indexOf(e.target);
+    if (k > -1 && k < ins.length - 1) { ins[k + 1].focus(); ins[k + 1].select(); } else closePlace();
+  }
+  if (e.key === 'Escape') { e.preventDefault(); closePlace(); }
+});
+/* 통화 바뀜 → 공통 정보의 환율 칸을 그 통화 것으로 교체 (다시 그리지 않고 포커스 유지) */
+function syncCurrencyFields() {
+  if (!doc.common.rates) doc.common.rates = {};
+  const s = $('#curSel'); if (s) s.value = curCode();
+  const ri = $('#rateInp');
+  if (ri) { ri.setAttribute('data-path', `common.rates.${curCode()}`); ri.value = doc.common.rates[curCode()] ?? ''; }
+  const rl = $('#rateLabel'); if (rl) rl.textContent = `환율 (1 ${curCode()} = ? 원)`;
+  const n = $('#curNote'); if (n) n.innerHTML = curNoteHtml();
+}
+document.addEventListener('change', e => {
+  /* 사진: 갤러리 / 휴대폰 기본 카메라 */
+  if (e.target.id === 'fileGallery' || e.target.id === 'fileCamEnv' || e.target.id === 'fileCamUser') {
+    const src = e.target.id === 'fileGallery' ? 'gallery' : (e.target.id === 'fileCamUser' ? 'selfie' : 'camera');
+    const files = e.target.files; handleFiles(files, src).then(() => { e.target.value = ''; }); return;
+  }
+  if (e.target.dataset && e.target.dataset.photoInclude != null) {
+    photos()[+e.target.dataset.photoInclude].include = e.target.checked; markDirty(); renderAll(); return;
+  }
+  if (e.target.id === 'curSel') {
+    doc.common.currency = e.target.value; curAutoMsg = `통화를 ${e.target.value}(으)로 바꿨습니다.`; markDirty(); syncCurrencyFields(); renderPreview(); return;
+  }
+  if (e.target.tagName === 'SELECT' && e.target.getAttribute('data-path')) {
+    const p = e.target.getAttribute('data-path');
+    setPath(p, e.target.value); markDirty();
+    /* 국내/해외 바뀌면 입력 가능한 칸이 달라지므로 다시 그림 */
+    if (/^(exp\.rows|plan\.budget)\.\d+\.region$/.test(p)) { renderAll(); return; }
+    renderPreview();
+    const tEl = $('#expTotal'); if (tEl) tEl.textContent = won(total());
+    const dEl = $('#expDiff'); if (dEl) dEl.textContent = diffText();
+  }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.tab) { currentTab = b.dataset.tab; editingPlace = null; renderAll(); return; }
+  if (b.dataset.placeEdit != null) { openPlace(Number(b.dataset.placeEdit)); return; }
+  if (b.dataset.placeMode) {
+    const s = doc.plan.schedule[Number(b.dataset.i)];
+    /* 탭 전환: 이동(출발·도착)과 장소 입력값은 각각 따로 보관. 서류에는 선택된 탭의 값만 나감 */
+    if (s.mode !== b.dataset.placeMode) { s.mode = b.dataset.placeMode; markDirty(); }
+    openPlace(Number(b.dataset.i)); return;
+  }
+  if (b.dataset.placeDone) { closePlace(); return; }
+  /* ---- 사진 ---- */
+  if (b.dataset.cam) { openCamera(b.dataset.cam); return; }
+  if (b.id === 'camShutter') { shoot(); return; }
+  if (b.dataset.camFlip) { flipCamera(); return; }
+  if (b.dataset.camClose) { closeCamera(); return; }
+  if (b.id === 'btnGallery') { startGeo(); $('#fileGallery').click(); return; }
+  if (b.dataset.stickyClear) { setSticky('', null); document.querySelectorAll('.sticky-c').forEach(t => { t.value = ''; }); const t = b.closest('.sticky-box').querySelector('.sticky-c'); if (t) t.focus(); return; }
+  if (b.dataset.chip != null) { setSticky(b.dataset.chip, null); document.querySelectorAll('.sticky-c').forEach(t => { t.value = b.dataset.chip; }); return; }
+  if (b.dataset.photoDl != null) { const i = +b.dataset.photoDl, p = photos()[i]; saveBlob(new Blob([dataUrlBytes(p.dataUrl)], { type: 'image/jpeg' }), photoFileName(p, i)); return; }
+  if (b.dataset.photoDlall) { downloadAllPhotos(); return; }
+  /* ---- 멤버 (설정 탭) ---- */
+  if (b.dataset.memberAdd) {
+    members.push({ name: '', dept: '', pos: '', role: '', memo: '' }); renderAll();
+    const ins = document.querySelectorAll('input[data-member-k="name"]'); if (ins.length) ins[ins.length - 1].focus();
+    return;   // 빈 줄은 이름을 입력하면 저장됨
+  }
+  if (b.dataset.memberDel != null) {
+    const m = members[+b.dataset.memberDel];
+    if (m.name && !confirm(`멤버 '${m.name}'을(를) 목록에서 지울까요? (이미 작성한 문서의 출장자는 그대로입니다)`)) return;
+    members.splice(+b.dataset.memberDel, 1); renderAll(); saveMembersSoon(); return;
+  }
+  if (b.dataset.photoSort) { photos().sort((a, c) => String(a.takenAt).localeCompare(String(c.takenAt))); markDirty(); renderAll(); return; }
+  if (b.dataset.photoMove != null) {
+    const i = +b.dataset.photoMove, j = i + (+b.dataset.dir), ps = photos();
+    if (j >= 0 && j < ps.length) { [ps[i], ps[j]] = [ps[j], ps[i]]; markDirty(); renderAll(); }
+    return;
+  }
+  if (b.dataset.photoDel != null) {
+    const i = +b.dataset.photoDel, p = photos()[i];
+    if (!confirm(`사진 #${i + 1}${p.comment ? ` (${p.comment.slice(0, 20)})` : ''}을(를) 삭제할까요?`)) return;
+    photos().splice(i, 1); if (photoSel === p.id) photoSel = null; markDirty(); renderAll(); return;
+  }
+  if (b.dataset.photoHere != null) {
+    const p = photos()[+b.dataset.photoHere];
+    if (!geo.fix) { setStatus('현재 위치를 아직 못 찾았습니다. 위치 권한을 확인해 주세요', 'err'); startGeo(); return; }
+    Object.assign(p, { lat: geo.fix.lat, lng: geo.fix.lng, acc: geo.fix.acc, locSrc: 'manual' }); markDirty(); renderAll(); return;
+  }
+  if (b.id === 'btnCopySql') {
+    const ta = $('#sqlText'); ta.select();
+    try { await navigator.clipboard.writeText(ta.value); setStatus('SQL 복사됨', 'ok'); }
+    catch (err) { document.execCommand && document.execCommand('copy'); setStatus('SQL 선택됨 — Ctrl+C로 복사하세요', ''); }
+    return;
+  }
+  if (b.dataset.del) {
+    const arr = getPath(b.dataset.del); arr.splice(Number(b.dataset.i), 1); markDirty(); renderAll(); return;
+  }
+  if (b.dataset.add) {
+    const a = b.dataset.add;
+    if (a === 'traveler') doc.common.travelers.push({ name: '', dept: '', pos: '', role: '' });
+    if (a === 'budget') { if (!Array.isArray(doc.plan.budget)) doc.plan.budget = []; doc.plan.budget.push({ item: '', basis: '', region: '국내', fx: '', krw: '' }); }
+    if (a === 'budgetFromExp') {
+      if (planBudget().length && !confirm('지금 소요예산표를 집행내역서(과제분) 기준으로 바꿀까요? 입력해 둔 산출근거는 지워집니다.')) return;
+      doc.plan.budget = budgetFromExp(doc.exp.rows, rate());
+    }
+    if (a === 'payCard' || a === 'payOther') {
+      if (!Array.isArray(doc.common.payMethods)) doc.common.payMethods = payMethods().slice();
+      doc.common.payMethods.push('');
+      markDirty(); renderAll();
+      const ins = document.querySelectorAll('input[data-pay-method]'); const last = ins[ins.length - 1];
+      if (last) { last.placeholder = a === 'payCard' ? '카드 끝 4자리 (예: 1234)' : '예: 개인카드, 현금(엔)'; last.focus(); }
+      return;
+    }
+    if (a === 'schedule') {
+      const last = doc.plan.schedule[doc.plan.schedule.length - 1];
+      let nd = '';
+      if (last && last.date) {
+        const t = new Date(last.date + 'T00:00:00'); t.setDate(t.getDate() + 1);
+        nd = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+      }
+      /* 지역은 전날 머문 곳(장소의 지역 또는 이동의 도착지)을 미리 채움 */
+      const prevArea = last ? (last.mode === 'move' ? last.to : last.area) || '' : '';
+      doc.plan.schedule.push({ date: nd, mode: 'stay', from: '', to: '', area: prevArea, bldg: '', content: '' });
+      editingPlace = doc.plan.schedule.length - 1;
+    }
+    if (a === 'exp' || a === 'expItem') {
+      const last = doc.exp.rows[doc.exp.rows.length - 1] || {};
+      const it = b.dataset.item || '';
+      doc.exp.rows.push({ no: (n0(last.no) || doc.exp.rows.length) + 1, date: last.date || doc.common.start, pay: /교통비/.test(it) ? cashMethod() : defaultCard(),
+        region: /항공|숙박|개인여비/.test(it) ? '국내' : '해외', store: (/교통비/.test(it) && curCode() === 'JPY') ? 'JR철도' : '', fx: '', krw: '', payDate: '', item: it, scope: '과제', note: '' });
+    }
+    if (a === 'daily') doc.report.daily.push({ date: '', content: '' });
+    if (a === 'dailyFromPlan') doc.report.daily = doc.plan.schedule.map(s => ({ date: s.date, content: (doc.report.daily.find(d => d.date === s.date) || {}).content || '' }));
+    markDirty();
+    if (a === 'schedule') openPlace(editingPlace); else renderAll();
+    return;
+  }
+  if (b.id === 'btnPrintOne') { window.print(); return; }
+  if (b.id === 'btnPv') { showPreview = !showPreview; lsSet('show_preview', showPreview ? '1' : '0'); renderAll(); return; }
+  if (b.id === 'btnPrintAll') { printAll(); return; }
+  if (b.id === 'btnSbSave') { lsSet('sb_url', $('#sbUrl').value.trim()); lsSet('sb_key', $('#sbKey').value.trim()); initSupabase(); await refreshList(); await loadMembers(); return; }
+  if (b.id === 'btnExport') {
+    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (doc.title || 'trip') + '.json'; a.click(); return;
+  }
+  if (b.id === 'btnReset') { if (confirm('지금 화면 내용을 기본 내용으로 되돌릴까요? (Supabase에 저장된 것은 그대로입니다)')) { doc = defaultDoc(); currentId = null; markDirty(); renderAll(); syncListSel(); } return; }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'fileImport' && e.target.files[0]) {
+    const r = new FileReader();
+    r.onload = () => { try { doc = migrate(JSON.parse(r.result)); currentId = null; markDirty(); renderAll(); syncListSel(); setStatus('JSON 가져옴 (아직 저장 전)', ''); } catch (err) { setStatus('JSON 형식 오류', 'err'); } };
+    r.readAsText(e.target.files[0]);
+  }
+});
+
+/* ---------------- 멤버 (설정 탭에서 등록 → 공통 정보의 출장자·작성자에서 골라 쓰기) ----------------
+   별도 테이블 없이 Supabase trip_docs 안의 '__members__' 행에 저장하고, 이 기기에도 사본을 둠(오프라인용) */
+const MEMBERS_TITLE = '__members__';
+let members = [], membersRowId = null, memberTimer = null;
+try { members = JSON.parse(lsGet('members_cache', '[]')) || []; } catch (e) { members = []; }
+function memberLabel(m) { return `${m.name || '(이름 없음)'}${m.pos ? ' ' + m.pos : ''}${m.dept ? ' · ' + m.dept : ''}`; }
+async function loadMembers() {
+  if (!sb) return;
+  const { data, error } = await sb.from(TABLE).select('id,data').eq('title', MEMBERS_TITLE).order('updated_at', { ascending: false }).limit(1);
+  if (error) return;
+  if (data && data[0]) {
+    membersRowId = data[0].id;
+    members = (data[0].data && data[0].data.members) || [];
+    lsSet('members_cache', JSON.stringify(members));
+  } else if (!members.length) {
+    /* 처음: 지금 문서의 출장자를 멤버로 채워 둠 (저장은 설정에서 고칠 때) */
+    members = (doc.common.travelers || []).filter(t => t.name).map(t => ({ name: t.name, dept: t.dept || '', pos: t.pos || '', role: t.role || '', memo: '' }));
+  }
+  if (currentTab === 'settings' || currentTab === 'common') renderAll();
+}
+function setMemberMsg(t) { const el = $('#memberSaved'); if (el) el.textContent = t; }
+function saveMembersSoon() {
+  lsSet('members_cache', JSON.stringify(members));
+  setMemberMsg('저장 중…');
+  clearTimeout(memberTimer); memberTimer = setTimeout(saveMembers, 600);
+}
+async function saveMembers() {
+  if (!sb) { setMemberMsg('이 기기에만 저장됨 (Supabase 미연결)'); return; }
+  const row = { title: MEMBERS_TITLE, data: { members }, updated_at: new Date().toISOString() };
+  const r = membersRowId
+    ? await sb.from(TABLE).update(row).eq('id', membersRowId).select('id').single()
+    : await sb.from(TABLE).insert(row).select('id').single();
+  if (r.error) { setMemberMsg('Supabase 저장 실패 — 이 기기에는 보관됨 (' + r.error.message + ')'); return; }
+  membersRowId = r.data.id; setMemberMsg('저장됨');
+}
+function membersEditorHtml() {
+  return `<h2>멤버 관리</h2>
+    <p class="note">자주 함께 출장 가는 사람을 등록해 두면 [공통 정보]의 <b>작성자</b>·<b>출장자</b>에서 골라 넣을 수 있습니다. 바꾸면 자동 저장됩니다. <span id="memberSaved" class="status"></span></p>
+    <table class="grid-edit"><tr><th>이름</th><th>소속</th><th>직위</th><th>과제 내 역할</th><th>메모(연락처 등)</th><th style="width:28px"></th></tr>
+      ${members.map((m, i) => `<tr>
+        <td><input data-member-i="${i}" data-member-k="name" value="${esc(m.name)}" placeholder="이름"></td>
+        <td><input data-member-i="${i}" data-member-k="dept" value="${esc(m.dept)}" placeholder="예: 품질관리팀"></td>
+        <td><input data-member-i="${i}" data-member-k="pos" value="${esc(m.pos)}" placeholder="예: 팀장"></td>
+        <td><input data-member-i="${i}" data-member-k="role" value="${esc(m.role)}" placeholder="예: 참여연구원"></td>
+        <td><input data-member-i="${i}" data-member-k="memo" value="${esc(m.memo)}"></td>
+        <td><button class="del" data-member-del="${i}" title="삭제">×</button></td></tr>`).join('') || '<tr><td colspan="6" class="note" style="padding:8px">등록된 멤버가 없습니다.</td></tr>'}
+    </table>
+    <button data-member-add="1" style="margin-top:6px">+ 멤버 추가</button>`;
+}
+/* 멤버 입력 */
+document.addEventListener('input', e => {
+  const t = e.target; if (!t.dataset || t.dataset.memberI == null) return;
+  members[+t.dataset.memberI][t.dataset.memberK] = t.value; saveMembersSoon();
+});
+/* 공통 정보: 멤버에서 작성자 / 출장자 고르기 */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'pickWriter' && t.value !== '') {
+    const m = members[+t.value];
+    Object.assign(doc.common, { writer: m.name || '', writerTitle: m.pos || '', writerDept: m.dept || '' });
+    markDirty(); renderAll(); setStatus(`작성자: ${memberLabel(m)}`, 'ok');
+  }
+  if (t.id === 'pickTraveler' && t.value !== '') {
+    const m = members[+t.value];
+    const tr = doc.common.travelers;
+    if (tr.some(x => x.name === m.name)) { setStatus(`${m.name}은(는) 이미 출장자에 있습니다`, ''); t.value = ''; return; }
+    const blank = tr.findIndex(x => !x.name && !x.dept && !x.pos);
+    const row = { name: m.name || '', dept: m.dept || '', pos: m.pos || '', role: m.role || '' };
+    if (blank > -1) tr[blank] = row; else tr.push(row);
+    markDirty(); renderAll(); setStatus(`출장자 추가: ${memberLabel(m)}`, 'ok');
+  }
+});
+
+/* ---------------- Supabase CRUD ---------------- */
+let listCache = [];
+async function refreshList() {
+  if (!sb) { setStatus('Supabase 미연결 (설정 확인)', 'err'); return; }
+  const { data, error } = await sb.from(TABLE).select('id,title,updated_at').order('updated_at', { ascending: false });
+  if (error) { setStatus('연결 오류: ' + error.message, 'err'); return; }
+  listCache = (data || []).filter(r => r.title !== MEMBERS_TITLE);   // 멤버 목록 행은 문서 목록에서 숨김
+  $('#docList').innerHTML = '<option value="">(새 문서)</option>' + listCache.map(r => `<option value="${r.id}">${esc(r.title)} · ${new Date(r.updated_at).toLocaleString('ko-KR')}</option>`).join('');
+  syncListSel();
+  setStatus(`Supabase 연결됨 · 문서 ${listCache.length}건`, 'ok');
+}
+function syncListSel() { $('#docList').value = currentId || ''; }
+
+$('#docList').addEventListener('change', async e => {
+  const id = e.target.value;
+  if (!id) { doc = defaultDoc(); currentId = null; renderAll(); return; }
+  const { data, error } = await sb.from(TABLE).select('*').eq('id', id).single();
+  if (error) { setStatus('불러오기 오류: ' + error.message, 'err'); return; }
+  doc = migrate(data.data); doc.title = data.title; currentId = data.id; dirty = false;
+  renderAll(); setStatus('불러옴: ' + data.title, 'ok');
+});
+/* 새 출장 문서: 과제·작성자·출장자·결제수단·환율은 지금 문서에서 이어받고, 출장별 내용은 비움 */
+function newTripDoc(prev) {
+  const d = defaultDoc();
+  const t = new Date();
+  const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  if (prev && prev.common) {
+    ['bizName', 'projNo', 'projName', 'org', 'pi', 'piTitle', 'writer', 'writerTitle', 'writerDept', 'currency']
+      .forEach(k => { if (prev.common[k] != null) d.common[k] = prev.common[k]; });
+    d.common.travelers = JSON.parse(JSON.stringify(prev.common.travelers || d.common.travelers));
+    d.common.payMethods = (prev.common.payMethods || d.common.payMethods).slice();
+    d.common.rates = Object.assign({}, prev.common.rates || d.common.rates);
+  }
+  d.title = '새 출장';
+  Object.assign(d.common, { draftDate: today, dest: '', start: '', end: '', purpose: '', visit: '' });
+  d.gian.subject = '글로벌 강소기업 R&D 과제 해외출장 기안의 건';
+  d.gian.content = '';
+  d.plan.schedule = [{ date: '', mode: 'move', from: '인천', to: '', area: '', bldg: '', content: '' }];
+  d.plan.budget = [
+    { item: '항공료', basis: '', region: '국내', fx: '', krw: '' },
+    { item: '출장 개인여비', basis: '', region: '국내', fx: '', krw: '' }
+  ];
+  d.exp = { purpose: '', region: '', travelersText: d.common.travelers.map(x => x.name).filter(Boolean).join(', '), rows: [], note: '' };
+  d.report = { daily: [], findings: '', apply: '', next: '' };
+  return d;
+}
+$('#btnNew').addEventListener('click', () => {
+  if (dirty && !confirm('저장하지 않은 변경 내용이 있습니다. 새 문서를 만들까요?\n(지금 내용은 이 브라우저 임시 저장분에서도 사라집니다)')) return;
+  doc = newTripDoc(doc); currentId = null; editingPlace = null; curAutoMsg = '';
+  markDirty(); dirty = false; currentTab = 'common'; renderAll(); syncListSel();
+  setStatus('새 문서 (저장 전) — 과제·작성자·결제수단·환율은 이어받았습니다', '');
+});
+$('#btnReload').addEventListener('click', refreshList);
+$('#btnSave').addEventListener('click', async () => {
+  if (!sb) { setStatus('Supabase 미연결 (설정 확인)', 'err'); return; }
+  const t = prompt('문서 이름', doc.title || ''); if (t === null) return;
+  doc.title = t.trim() || doc.title;
+  const row = { title: doc.title, data: doc, updated_at: new Date().toISOString() };
+  const q = currentId ? sb.from(TABLE).update(row).eq('id', currentId).select().single() : sb.from(TABLE).insert(row).select().single();
+  const { data, error } = await q;
+  if (error) { setStatus('저장 오류: ' + error.message, 'err'); return; }
+  currentId = data.id; dirty = false; await refreshList(); setStatus('저장됨: ' + doc.title, 'ok');
+});
+$('#btnDelete').addEventListener('click', async () => {
+  if (!sb || !currentId) { setStatus('삭제할 저장 문서를 먼저 선택하세요', 'err'); return; }
+  if (!confirm(`'${doc.title}' 문서를 Supabase에서 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  const { error } = await sb.from(TABLE).delete().eq('id', currentId);
+  if (error) { setStatus('삭제 오류: ' + error.message, 'err'); return; }
+  currentId = null; doc = defaultDoc(); renderAll(); await refreshList(); setStatus('삭제됨', 'ok');
+});
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------------- 시작 ---------------- */
+(function start() {
+  try {
+    const draft = JSON.parse(lsGet(DRAFT_KEY, 'null'));
+    if (draft && draft.doc) { doc = migrate(draft.doc); currentId = draft.id || null; }
+  } catch (e) {}
+  initSupabase();
+  renderAll();
+  refreshList();
+  loadMembers();
+  /* 휴대폰 오프라인용: https(또는 localhost)에서는 화면 파일을 기기에 저장해 둠 */
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
